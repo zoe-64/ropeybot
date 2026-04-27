@@ -104,6 +104,7 @@ interface ConnectorEvents {
         leaveMessage: string | null,
         intentional: boolean,
     ];
+    RoomUpdate: [obj: ServerChatRoomSyncPropertiesMessage];
 }
 
 export class API_Connector extends EventEmitter<ConnectorEvents> {
@@ -471,6 +472,7 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
         delete roomData.Locked;
 
         this.roomJoined = roomData;
+        this.emit("RoomUpdate", resp);
     };
 
     private onChatRoomSyncCharacter = (
