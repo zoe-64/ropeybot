@@ -261,7 +261,11 @@ export class Casino {
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        this.conn.reply(msg, this.game.HELPCOMMANDMESSAGE);
+        this.conn.SendMessage(
+            "Whisper",
+            this.game.HELPCOMMANDMESSAGE,
+            sender.MemberNumber,
+        );
     };
 
     private onCommandForfeits = (
@@ -274,7 +278,7 @@ Restraints are for 20 minutes, unless otherwise stated.
 
 ${forfeitsString()}
 `;
-        this.conn.reply(msg, text);
+        this.conn.SendMessage("Whisper", text, sender.MemberNumber);
     };
 
     private onCommandCommands = (
@@ -282,7 +286,11 @@ ${forfeitsString()}
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        this.conn.reply(msg, this.game.COMMANDSMESSAGE);
+        this.conn.SendMessage(
+            "Whisper",
+            this.game.COMMANDSMESSAGE,
+            sender.MemberNumber,
+        );
     };
 
     private onCommandChips = async (

@@ -317,7 +317,7 @@ export class TexasHoldemGame implements Game {
             if (b && b.memberNumber === memberNumber) {
                 b.bet = undefined;
             }
-        })
+        });
     }
 
     onCommandPlay = async (
@@ -370,7 +370,7 @@ export class TexasHoldemGame implements Game {
         await this.casino.store.savePlayer(playerStore);
         let player = this.players.find(
             (b) => b.memberNumber === sender.MemberNumber,
-        )
+        );
         let bet = player.bet;
 
         if (bet.stake + raise.stake < this.minimumBet) {
@@ -392,7 +392,7 @@ export class TexasHoldemGame implements Game {
             "Chat",
             `${bet.memberName} raises by ${raise.stake} to ${this.minimumBet}.`,
         );
-        this.getNextPlayer(player);    
+        this.getNextPlayer(player);
         // Round cannot be done after a raise
     };
 
@@ -439,7 +439,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} checks.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        this.getNextPlayer(player);    
+        this.getNextPlayer(player);
     };
 
     onCommandFold = async (
@@ -474,7 +474,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} folds.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        this.getNextPlayer(player);    
+        this.getNextPlayer(player);
     };
 
     private onCommandCall = async (
@@ -524,7 +524,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} calls.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        this.getNextPlayer(player);    
+        this.getNextPlayer(player);
     };
 
     private onCommandAllin = async (
@@ -608,7 +608,7 @@ export class TexasHoldemGame implements Game {
             if (p.bet.status !== "folded") {
                 p.bet.status == "waiting";
             }
-        })
+        });
         this.players[lastPlayerIndex].bet.status = "pending";
         return this.players[lastPlayerIndex];
     }
@@ -622,7 +622,7 @@ export class TexasHoldemGame implements Game {
     clear(): void {
         this.players.forEach((p) => {
             p.bet = undefined;
-        })
+        });
         this.playerHands.clear();
     }
 
