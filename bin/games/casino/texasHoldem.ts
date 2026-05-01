@@ -118,6 +118,8 @@ export class TexasHoldemGame implements Game {
         casino: Casino,
     ) {
         this.casino = casino;
+        this.casino.commandParser.register("play", this.onCommandPlay);
+        this.casino.commandParser.register("pause", this.onCommandPause);
         this.casino.commandParser.register("raise", this.onCommandRaise);
         this.casino.commandParser.register("check", this.onCommandCheck);
         this.casino.commandParser.register("fold", this.onCommandFold);
@@ -241,7 +243,7 @@ export class TexasHoldemGame implements Game {
         resolve();
     }
 
-    parseRaiseCommand(
+    parseBetCommand(
         senderCharacter: API_Character,
         msg: BC_Server_ChatRoomMessage,
         args: string[],
@@ -311,10 +313,28 @@ export class TexasHoldemGame implements Game {
     }
 
     public clearBetsForPlayer(memberNumber: number): undefined {
-        this.players = this.players.filter(
-            (b) => b.memberNumber !== memberNumber,
-        );
+        this.players.forEach((b) => {
+            if (b && b.memberNumber === memberNumber) {
+                b.bet = undefined;
+            }
+        })
     }
+
+    onCommandPlay = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        //TODO
+    };
+
+    onCommandPause = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        //TODO
+    };
 
     onCommandRaise = async (
         sender: API_Character,
@@ -330,7 +350,7 @@ export class TexasHoldemGame implements Game {
             return;
         }
 
-        const raise = this.parseRaiseCommand(sender, msg, args);
+        const raise = this.parseBetCommand(sender, msg, args);
         if (raise === undefined) {
             return;
         }
@@ -348,9 +368,10 @@ export class TexasHoldemGame implements Game {
         }
         playerStore.credits -= raise.stake;
         await this.casino.store.savePlayer(playerStore);
-        let bet = this.players.find(
+        let player = this.players.find(
             (b) => b.memberNumber === sender.MemberNumber,
-        ).bet;
+        )
+        let bet = player.bet;
 
         if (bet.stake + raise.stake < this.minimumBet) {
             this.conn.SendMessage(
@@ -371,7 +392,7 @@ export class TexasHoldemGame implements Game {
             "Chat",
             `${bet.memberName} raises by ${raise.stake} to ${this.minimumBet}.`,
         );
-        //TODO next player turn
+        this.getNextPlayer(player);    
         // Round cannot be done after a raise
     };
 
@@ -418,7 +439,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} checks.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        //TODO next player turn
+        this.getNextPlayer(player);    
     };
 
     onCommandFold = async (
@@ -453,7 +474,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} folds.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        //TODO next player turn
+        this.getNextPlayer(player);    
     };
 
     private onCommandCall = async (
@@ -503,7 +524,7 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", `${player.memberName} calls.`);
 
         if (this.allPlayersDone()) this.resolveGame();
-        //TODO next player turn
+        this.getNextPlayer(player);    
     };
 
     private onCommandAllin = async (
@@ -549,7 +570,8 @@ export class TexasHoldemGame implements Game {
 
         playerStore.credits = 0;
         await this.casino.store.savePlayer(playerStore);
-        //TODO Next player
+        if (this.allPlayersDone()) this.resolveGame();
+        this.getNextPlayer(player);
     };
 
     private onDealTimeout(): void {
@@ -571,10 +593,24 @@ export class TexasHoldemGame implements Game {
         }
     }
 
-    private getNextPlayer(lastPlayer: API_Character): API_Character {
-        //TODO
-        // this.conn.chatRoom.characters
-        return undefined;
+    private getNextPlayer(lastPlayer: TexasHoldemPlayer): TexasHoldemPlayer {
+        let lastPlayerIndex = this.players.indexOf(lastPlayer) + 1;
+        if (lastPlayerIndex > this.players.length - 1) {
+            lastPlayerIndex = 0;
+        }
+        while (this.players[lastPlayerIndex].bet.status === "folded") {
+            lastPlayerIndex++;
+            if (lastPlayerIndex > this.players.length - 1) {
+                lastPlayerIndex = 0;
+            }
+        }
+        this.players.forEach((p) => {
+            if (p.bet.status !== "folded") {
+                p.bet.status == "waiting";
+            }
+        })
+        this.players[lastPlayerIndex].bet.status = "pending";
+        return this.players[lastPlayerIndex];
     }
 
     private allPlayersDone(): boolean {
@@ -584,7 +620,9 @@ export class TexasHoldemGame implements Game {
     }
 
     clear(): void {
-        this.players = [];
+        this.players.forEach((p) => {
+            p.bet = undefined;
+        })
         this.playerHands.clear();
     }
 

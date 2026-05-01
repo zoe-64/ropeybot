@@ -223,7 +223,7 @@ export class BlackjackGame implements Game {
         resolve();
     }
 
-    parseRaiseCommand(
+    parseBetCommand(
         senderCharacter: API_Character,
         msg: BC_Server_ChatRoomMessage,
         args: string[],
@@ -844,7 +844,7 @@ export class BlackjackGame implements Game {
             return;
         }
 
-        const bet = this.parseRaiseCommand(sender, msg, args);
+        const bet = this.parseBetCommand(sender, msg, args);
         if (bet === undefined) {
             return;
         }

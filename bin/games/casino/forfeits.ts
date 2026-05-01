@@ -224,6 +224,8 @@ interface Service {
     value: number;
 }
 
+// TODO buy outfits?
+
 export const SERVICES: Record<string, Service> = {
     cocktail: {
         name: "House Special Cocktail",

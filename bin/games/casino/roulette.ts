@@ -225,7 +225,7 @@ export class RouletteGame implements Game {
         }, 500);
     }
 
-    public parseRaiseCommand(
+    public parseBetCommand(
         senderCharacter: API_Character,
         msg: BC_Server_ChatRoomMessage,
         args: string[],
@@ -348,7 +348,7 @@ export class RouletteGame implements Game {
             return;
         }
 
-        const bet = this.parseRaiseCommand(sender, msg, args);
+        const bet = this.parseBetCommand(sender, msg, args);
         if (bet === undefined) {
             return;
         }
