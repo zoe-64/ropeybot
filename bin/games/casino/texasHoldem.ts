@@ -106,7 +106,13 @@ export class TexasHoldemGame implements Game {
     private resetTimeout: NodeJS.Timeout | undefined; // after finishing a game
     private dealTimeout: NodeJS.Timeout | undefined; // after first bet until the deal
 
-    private communityCards: Card[] = [];
+    private communityCards: Card[] = [
+        { suit: "", value: "" },
+        { suit: "", value: "" },
+        { suit: "", value: "" },
+        { suit: "", value: "" },
+        { suit: "", value: "" },
+    ];
     private minimumBet: number = 0;
     private gameState: "Preflop" | "Flop" | "Turn" | "River" = "Preflop";
 
