@@ -546,10 +546,12 @@ export class BlackjackGame implements Game {
         hand[1] = this.deck.pop();
         if (this.calculateHandValue(hand) > 20) {
             currentBet.standing = true; // Player automatically stands on 21
-            player.playingHand++;
         }
         if (this.calculateHandValue(this.playerHands.get(newBet)) > 20) {
             newBet.standing = true; // Player automatically stands on 21
+        }
+        while (player.bets[player.playingHand].standing) {
+            player.playingHand++;
         }
         this.conn.SendMessage(
             "Whisper",
