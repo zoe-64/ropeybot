@@ -71,5 +71,5 @@ export function getCardString(
     } else if (card.suit === "Clubs") {
         return `${card.value}` + (signFriendly ? "c" : "♣");
     }
-    return `${card.value}?`;
+    return "[???]";
 }

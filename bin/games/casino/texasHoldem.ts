@@ -6,6 +6,7 @@ import {
     Card,
     createDeck,
     getCardString,
+    getNumericCardValue,
     shuffleDeck,
     sortCards,
 } from "./pokerCards";
@@ -16,8 +17,6 @@ import {
     API_AppearanceItem,
     AssetGet,
 } from "bc-bot";
-
-// FLOP; TURN; RIVER
 
 //TODO
 const TEXASHOLDEMCOMMANDS = `Three Card Poker commands:
@@ -89,9 +88,12 @@ type Hand = Card[];
 enum HandRank {
     HighCard = 1,
     Pair,
-    Flush,
-    Straight,
+    TwoPair,
     ThreeOfAKind,
+    Straight,
+    Flush,
+    FullHouse,
+    FourOfAKind,
     StraightFlush,
 }
 
@@ -100,13 +102,13 @@ export class TexasHoldemGame implements Game {
     private deck: Card[] = [];
     private playerHands: Map<TexasHoldemBet, Hand> = new Map();
     private willDealAt: number | undefined;
-    private willFoldAt: number | undefined;
     private players: TexasHoldemPlayer[] = [];
     private resetTimeout: NodeJS.Timeout | undefined; // after finishing a game
     private dealTimeout: NodeJS.Timeout | undefined; // after first bet until the deal
 
-    private river: Card[] = [];
+    private communityCards: Card[] = [];
     private minimumBet: number = 0;
+    private gameState: "Preflop" | "Flop" | "Turn" | "River" = "Preflop";
 
     public HELPMESSAGE = FULLTEXASHOLDEMHELP;
     public EXAMPLES = TEXASHOLDEMEXAMPLES;
@@ -192,6 +194,7 @@ export class TexasHoldemGame implements Game {
             ]);
         }, 500);
     }
+
     placeBet(bet: Bet): void {
         throw new Error("Method not implemented.");
     }
@@ -203,14 +206,6 @@ export class TexasHoldemGame implements Game {
             return pole;
         }
 
-        /*this.conn.Player.Appearance.RemoveItem("ItemDevices");
-        pole = this.conn.Player.Appearance.AddItem(
-            AssetGet("ItemDevices", "Pole"),
-        );
-        console.log("Adding pole to appearance");
-        pole.SetColor(["#AC9A85"]);
-/**/
-        console.log("Adding pole to inventory");
         let newPole = AssetGet("ItemDevices", "Pole");
         newPole.Color = ["#AC9A85"];
         this.conn.Player.Appearance.AddItem(newPole);
@@ -299,8 +294,26 @@ export class TexasHoldemGame implements Game {
     }
 
     private async resolveGame(): Promise<void> {
-        //TODO
+        if (this.gameState === "Preflop") {
+            this.communityCards.splice(0, 3, ...this.deck.splice(0, 3));
+            this.gameState = "Flop";
+            this.showHands(false);
+        } else if (this.gameState === "Flop") {
+            this.communityCards.splice(3, 1, ...this.deck.splice(0, 1));
+            this.gameState = "Turn";
+            this.showHands(false);
+        } else if (this.gameState === "Turn") {
+            this.communityCards.splice(4, 1, ...this.deck.splice(0, 1));
+            this.gameState = "River";
+            this.showHands(false);
+        } else if (this.gameState === "River") {
+            this.showHands(true);
+            await this.showdown();
+        }
     }
+
+    //TODO
+    private async showdown(): Promise<void> {}
 
     getBets(): TexasHoldemBet[] {
         return this.players.map((b) => b.bet);
@@ -593,6 +606,16 @@ export class TexasHoldemGame implements Game {
         }
     }
 
+    private getPlayerStatus(player: TexasHoldemPlayer): string {
+        if (player.bet.status === "folded") return "folded";
+        else if (player.bet.status === "waiting") {
+            if (player.bet.allin) return `allin for ${player.bet.stake}`;
+            else if (player.bet.stake === this.minimumBet) return "call";
+            else return `raise ${player.bet.stake - this.minimumBet}`;
+        } else if (player.bet.status === "pending")
+            return `${player.bet.stake - this.minimumBet} to call`;
+    }
+
     private getNextPlayer(lastPlayer: TexasHoldemPlayer): TexasHoldemPlayer {
         let lastPlayerIndex = this.players.indexOf(lastPlayer) + 1;
         if (lastPlayerIndex > this.players.length - 1) {
@@ -646,20 +669,160 @@ export class TexasHoldemGame implements Game {
         this.conn.SendMessage("Chat", "All cards have been dealt.");
     }
 
-    private evaluteHand(hand: Hand): { rank: HandRank; rankedCards: number[] } {
-        //TODO evaluate with board
-        return { rank: undefined, rankedCards: undefined };
+    private evaluateHand(hand: Hand): {
+        rank: HandRank;
+        rankedCards: number[];
+    } {
+        const allCards = [...hand, ...this.communityCards];
+
+        const combinations = this.getCombinations(allCards, 5);
+
+        let best = null;
+
+        for (const combo of combinations) {
+            const evaluated = this.evaluateFiveCardHand(combo);
+
+            if (!best || this.compareHands(evaluated, best) > 0) {
+                best = evaluated;
+            }
+        }
+
+        return best;
     }
 
-    private async showHands(): Promise<void> {
-        const handString = await this.buildHandString();
-        this.conn.SendMessage("Chat", handString);
+    private evaluateFiveCardHand(cards: Card[]): {
+        rank: HandRank;
+        rankedCards: number[];
+    } {
+        const values = cards.map(getNumericCardValue).sort((a, b) => b - a);
+
+        const suits = cards.map((c) => c.suit);
+
+        const valueCounts = new Map<number, number>();
+        for (const v of values) {
+            valueCounts.set(v, (valueCounts.get(v) || 0) + 1);
+        }
+
+        const counts = Array.from(valueCounts.values()).sort((a, b) => b - a);
+
+        const isFlush = suits.every((s) => s === suits[0]);
+
+        const isStraight = (() => {
+            const unique = [...new Set(values)];
+            if (unique.length !== 5) return false;
+
+            // normal straight
+            if (unique[0] - unique[4] === 4) return true;
+
+            // wheel (A-2-3-4-5)
+            return JSON.stringify(unique) === JSON.stringify([14, 5, 4, 3, 2]);
+        })();
+
+        if (isStraight && isFlush) {
+            const isWheel =
+                JSON.stringify(values) === JSON.stringify([14, 5, 4, 3, 2]);
+
+            const straightValues = isWheel ? [5, 4, 3, 2, 1] : values;
+
+            return {
+                rank: HandRank.StraightFlush,
+                rankedCards: straightValues,
+            };
+        } else if (counts[0] === 4)
+            return { rank: HandRank.FourOfAKind, rankedCards: values };
+        else if (counts[0] === 3 && counts[1] === 2)
+            return { rank: HandRank.FullHouse, rankedCards: values };
+        else if (isFlush) return { rank: HandRank.Flush, rankedCards: values };
+        else if (isStraight) {
+            const isWheel =
+                JSON.stringify(values) === JSON.stringify([14, 5, 4, 3, 2]);
+
+            const straightValues = isWheel ? [5, 4, 3, 2, 1] : values;
+
+            return { rank: HandRank.Straight, rankedCards: straightValues };
+        } else if (counts[0] === 3)
+            return { rank: HandRank.ThreeOfAKind, rankedCards: values };
+        else if (counts[0] === 2 && counts[1] === 2)
+            return { rank: HandRank.TwoPair, rankedCards: values };
+        else if (counts[0] === 2)
+            return { rank: HandRank.Pair, rankedCards: values };
+
+        return { rank: HandRank.HighCard, rankedCards: values };
+    }
+
+    private compareHands(a: any, b: any): number {
+        if (a.rank !== b.rank) return a.rank - b.rank;
+
+        for (let i = 0; i < a.values.length; i++) {
+            if (a.values[i] !== b.values[i]) {
+                return a.values[i] - b.values[i];
+            }
+        }
+        return 0;
+    }
+
+    private getCombinations(cards: Card[], k: number): Card[][] {
+        const result: Card[][] = [];
+
+        function helper(start: number, combo: Card[]) {
+            if (combo.length === k) {
+                result.push([...combo]);
+                return;
+            }
+
+            for (let i = start; i < cards.length; i++) {
+                combo.push(cards[i]);
+                helper(i + 1, combo);
+                combo.pop();
+            }
+        }
+
+        helper(0, []);
+        return result;
+    }
+
+    private async showHands(allShown: boolean = false): Promise<void> {
+        let outString = `Community cards: ${this.handToString(this.communityCards)}\n`;
+        if (allShown) {
+            this.players.forEach(async (p) => {
+                const handString: string = await this.buildHandString(
+                    p,
+                    true,
+                    true,
+                );
+                outString += `${p.memberName} (${p.bet.memberNumber}) hand: ${handString} -- (${this.getPlayerStatus(p)})\n`;
+            });
+            this.conn.SendMessage("Chat", outString);
+        } else {
+            this.players.forEach(async (requestingPlayer) => {
+                this.players.forEach(async (p) => {
+                    const handString: string = await this.buildHandString(
+                        p,
+                        requestingPlayer.memberNumber === p.memberNumber,
+                    );
+                    outString += `${p.memberName} (${p.bet.memberNumber}) hand: ${handString} -- (${this.getPlayerStatus(p)})\n`;
+                });
+                this.conn.SendMessage(
+                    "Whisper",
+                    outString,
+                    requestingPlayer.memberNumber,
+                );
+            });
+        }
     }
 
     private async buildHandString(
-        requestingPlayer: TexasHoldemPlayer | undefined = undefined,
+        requestingPlayer: TexasHoldemPlayer,
+        cardsShown: boolean = false,
+        calculated: boolean = false,
     ): Promise<string> {
-        return "";
+        if (!cardsShown)
+            return `${requestingPlayer.memberName} (${requestingPlayer.bet.memberNumber}) hand: [???] [???]\n`;
+        else
+            return `${requestingPlayer.memberName} (${requestingPlayer.bet.memberNumber}) hand: ${this.handToString(
+                this.playerHands.get(requestingPlayer.bet),
+                calculated,
+            )}\n`;
     }
 
     private handToString(
@@ -672,7 +835,7 @@ export class TexasHoldemGame implements Game {
         }
         if (calculated) {
             let rank = "";
-            switch (this.evaluteHand(hand).rank) {
+            switch (this.evaluateHand(hand).rank) {
                 case HandRank.StraightFlush:
                     rank = "Straight Flush";
                     break;
