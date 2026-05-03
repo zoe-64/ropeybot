@@ -584,9 +584,8 @@ export class RouletteGame implements Game {
     }
 
     public clearBetForPlayer(memberNumber: number, index: number): undefined {
-        this.bets.filter((b) => b.memberNumber === memberNumber)[index] =
-            undefined;
-        this.bets = this.bets.filter((b) => b !== undefined);
+        const removedBet = this.bets.filter((b) => b.memberNumber === memberNumber)[index];
+        this.bets = this.bets.filter((b) => b !== removedBet);
     }
     public clearBetsForPlayer(memberNumber: number): undefined {
         this.bets = this.bets.filter((b) => b.memberNumber !== memberNumber);
