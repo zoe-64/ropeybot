@@ -66,8 +66,8 @@ const ROULETTEEXAMPLES = `
     bets the 'leg binder' forfeit (worth 7 chips) on number 15
 `;
 
-// const TIME_UNTIL_SPIN_MS = 60000;
-const TIME_UNTIL_SPIN_MS = 18000;
+const TIME_UNTIL_SPIN_MS = 60000;
+// const TIME_UNTIL_SPIN_MS = 18000;
 const BET_CANCEL_THRESHOLD_MS = 3000;
 
 type RouletteBetKind =
