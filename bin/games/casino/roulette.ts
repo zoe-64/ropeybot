@@ -495,7 +495,7 @@ export class RouletteGame implements Game {
                 `${sender.Name} cancelled their bet.`,
             );
         } else {
-            if (args.length !== 1 || args[0].match(/\d+/)) {
+            if (args.length !== 1 || !args[0].match(/\d+/)) {
                 let betText = "";
                 let i = 1;
                 this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
