@@ -14,7 +14,11 @@
 
 import { resolve } from "path";
 import { wait, waitForCondition } from "../../hub/utils";
-import { Casino, getItemsBlockingForfeit } from "../casino";
+import {
+    Casino,
+    getItemsBlockingForfeit,
+    getSlotsNeededByForfeit,
+} from "../casino";
 import {
     API_Character,
     API_Connector,
@@ -22,7 +26,7 @@ import {
     API_AppearanceItem,
     AssetGet,
 } from "bc-bot";
-import { FORFEITS } from "./forfeits";
+import { FORFEITS, forfeitsString } from "./forfeits";
 import { Bet, Game } from "./game";
 import { ROULETTE_WHEEL } from "./rouletteWheelBundle";
 
@@ -62,8 +66,8 @@ const ROULETTEEXAMPLES = `
     bets the 'leg binder' forfeit (worth 7 chips) on number 15
 `;
 
-const TIME_UNTIL_SPIN_MS = 60000;
-// const TIME_UNTIL_SPIN_MS = 6000;
+// const TIME_UNTIL_SPIN_MS = 60000;
+const TIME_UNTIL_SPIN_MS = 18000;
 const BET_CANCEL_THRESHOLD_MS = 3000;
 
 type RouletteBetKind =
@@ -238,18 +242,6 @@ export class RouletteGame implements Game {
             return;
         }
 
-        if (
-            this.bets.find(
-                (b) => b.memberNumber === senderCharacter.MemberNumber,
-            )
-        ) {
-            this.conn.reply(
-                msg,
-                "You already placed a bet. Use !cancel to cancel it.",
-            );
-            return;
-        }
-
         const betKind = args[0].toLowerCase();
 
         const stake = args[1];
@@ -269,6 +261,31 @@ export class RouletteGame implements Game {
                 return;
             }
         }
+
+        let stop = false;
+        this.bets
+            .filter((b) => b.memberNumber === senderCharacter.MemberNumber)
+            .forEach((b) => {
+                if (b.stakeForfeit !== undefined) {
+                    getSlotsNeededByForfeit(
+                        FORFEITS[b.stakeForfeit].items(senderCharacter),
+                    ).forEach((s) => {
+                        if (
+                            getSlotsNeededByForfeit(
+                                FORFEITS[stakeForfeit].items(senderCharacter),
+                            ).includes(s)
+                        ) {
+                            this.conn.reply(
+                                msg,
+                                "You already have a bet for the required slot in play.",
+                            );
+                            stop = true;
+                            return;
+                        }
+                    });
+                }
+            });
+        if (stop) return;
 
         switch (betKind) {
             case "red":
@@ -456,19 +473,76 @@ export class RouletteGame implements Game {
             this.conn.reply(msg, "You can't cancel your bet now.");
             return;
         }
-        if (this.getBetsForPlayer(sender.MemberNumber)[0].stakeForfeit) {
-            const player = await this.casino.store.getPlayer(
+        if (this.getBetsForPlayer(sender.MemberNumber).length === 1) {
+            if (!this.getBetsForPlayer(sender.MemberNumber)[0].stakeForfeit) {
+                const player = await this.casino.store.getPlayer(
+                    sender.MemberNumber,
+                );
+                this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
+                    player.credits += b.stake;
+                });
+                await this.casino.store.savePlayer(player);
+            }
+
+            this.clearBetsForPlayer(sender.MemberNumber);
+            this.conn.SendMessage(
+                "Whisper",
+                "Bet cancelled.",
                 sender.MemberNumber,
             );
-            this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
-                player.credits += b.stake;
-            });
-            await this.casino.store.savePlayer(player);
-        }
+            this.conn.SendMessage(
+                "Chat",
+                `${sender.Name} cancelled their bet.`,
+            );
+        } else {
+            if (args.length !== 1 || args[0].match(/\d+/)) {
+                let betText = "";
+                let i = 1;
+                this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
+                    betText += `${i++}: ${b.kind === "single" ? b.number : b.kind} for ${b.stakeForfeit ?? b.stake + " chips"}\n`;
+                });
+                this.conn.SendMessage(
+                    "Whisper",
+                    `As you have more than one bet you need to specify which one you'd like to cancel by adding the Number of the bet:\n${betText}`,
+                    sender.MemberNumber,
+                );
+                return;
+            } else {
+                let index: number = parseInt(args[0]) - 1;
+                if (
+                    index < 0 ||
+                    this.getBetsForPlayer(sender.MemberNumber).length < index
+                ) {
+                    this.conn.SendMessage(
+                        "Whisper",
+                        `You don't have an ${index}-th bet.`,
+                        sender.MemberNumber,
+                    );
+                    return;
+                }
+                const bet = this.getBetsForPlayer(sender.MemberNumber)[index];
+                if (!bet.stakeForfeit) {
+                    const player = await this.casino.store.getPlayer(
+                        sender.MemberNumber,
+                    );
+                    this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
+                        player.credits += b.stake;
+                    });
+                    await this.casino.store.savePlayer(player);
+                }
 
-        this.clearBetsForPlayer(sender.MemberNumber);
-        this.conn.SendMessage("Whisper", "Bet cancelled.", sender.MemberNumber);
-        this.conn.SendMessage("Chat", `${sender.Name} cancelled their bet.`);
+                this.clearBetForPlayer(sender.MemberNumber, index);
+                this.conn.SendMessage(
+                    "Whisper",
+                    "Bet cancelled.",
+                    sender.MemberNumber,
+                );
+                this.conn.SendMessage(
+                    "Chat",
+                    `${sender.Name} cancelled their bet on ${bet.kind === "single" ? bet.number : bet.kind}.`,
+                );
+            }
+        }
     };
 
     public textForBet(bet: RouletteBet): string {
@@ -509,6 +583,11 @@ export class RouletteGame implements Game {
         return this.bets.filter((b) => b.memberNumber === memberNumber);
     }
 
+    public clearBetForPlayer(memberNumber: number, index: number): undefined {
+        this.bets.filter((b) => b.memberNumber === memberNumber)[index] =
+            undefined;
+        this.bets = this.bets.filter((b) => b !== undefined);
+    }
     public clearBetsForPlayer(memberNumber: number): undefined {
         this.bets = this.bets.filter((b) => b.memberNumber !== memberNumber);
     }
@@ -630,10 +709,10 @@ export class RouletteGame implements Game {
                 winnerMemberData.score += winnings;
                 await this.casino.store.savePlayer(winnerMemberData);
 
-                message += `\n${bet.memberName} wins ${winnings} chips!`;
+                message += `\n${bet.memberName} wins ${winnings} chips from ${bet.kind === "single" ? bet.number : bet.kind}!`;
             } else if (bet.stakeForfeit) {
                 this.casino.applyForfeit(bet);
-                message += `\n${bet.memberName} lost and gets: ${FORFEITS[bet.stakeForfeit].name}!`;
+                message += `\n${bet.memberName} lost from ${bet.kind === "single" ? bet.number : bet.kind} and gets: ${FORFEITS[bet.stakeForfeit].name}!`;
             }
         }
 

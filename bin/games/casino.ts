@@ -50,6 +50,12 @@ export function getItemsBlockingForfeit(
     return char.Appearance.Appearance.filter((i) => slots.has(i.Group));
 }
 
+export function getSlotsNeededByForfeit(
+    items: BC_AppearanceItem[],
+): AssetGroupName[] {
+    return items.map((i) => i.Group);
+}
+
 export const makeBio = (
     leaderBoard: string,
     exampleString: string,
