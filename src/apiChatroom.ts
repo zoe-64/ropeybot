@@ -30,12 +30,10 @@ export interface API_Chatroom_Data {
     Character: API_Character_Data[];
     Admin: number[];
     Ban: number[];
-    Private: boolean;
     Access: ServerChatRoomRole[];
     Visibility: ServerChatRoomRole[];
     Limit: number;
     Background: string;
-    Locked: boolean;
     Space: ServerChatRoomSpace;
     BlockCategory: ServerChatRoomBlockCategory[];
     Game: ServerChatRoomGame;
@@ -46,8 +44,6 @@ export interface API_Chatroom_Data {
 export function transformToChatRoomData(
     chatRoom: ServerChatRoomData,
 ): API_Chatroom_Data {
-    //@ts-ignore need to remove Private and Locked
-    //FIXME: https://github.com/FriendsOfBC/ropeybot/pull/19/files 
     return {
         ...chatRoom,
         Character: chatRoom.Character.map((data) =>
@@ -132,7 +128,7 @@ export class API_Chatroom extends EventEmitter<ChatRoomEvents> {
         });
     }
     public get Private(): boolean {
-        return this.data.Private;
+        return !this.data.Visibility.includes("All");
     }
     public get Limit(): number {
         return this.data.Limit;
