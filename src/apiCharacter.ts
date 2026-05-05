@@ -250,9 +250,11 @@ export class API_Character {
     }
 
     public IsRoomWhitelistedOrAdmin(): boolean {
-        return this.chatRoom?.Whitelist.includes(this.MemberNumber)
-            ? true
-            : (this.chatRoom?.Admin.includes(this.MemberNumber) ?? false);
+        return (
+            (this.chatRoom?.Whitelist.includes(this.MemberNumber) ||
+                this.chatRoom?.Admin.includes(this.MemberNumber)) ??
+            false
+        );
     }
 
     public Tell(msgType: TellType, msg: string): void {

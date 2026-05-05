@@ -220,6 +220,7 @@ export class BlackjackGame implements Game {
         this.casino.commandParser.unregister("stand");
         this.casino.commandParser.unregister("double");
         this.casino.commandParser.unregister("sign");
+        this.casino.commandParser.unregister("skipwait");
         this.clear();
         resolve();
     }
@@ -1009,6 +1010,7 @@ export class BlackjackGame implements Game {
         }
         if (this.willDealAt === undefined) {
             this.conn.reply(msg, "There's no game in progress.");
+            return;
         }
         this.willDealAt = Date.now();
         this.conn.reply(msg, "The wait has been skipped.");

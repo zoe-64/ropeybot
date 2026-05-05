@@ -324,7 +324,7 @@ ${forfeitsString()}
             const player = await this.store.getPlayer(sender.MemberNumber);
             this.conn.reply(
                 msg,
-                `${sender}, you have ${player.credits} chips${sender.MemberNumber === 78366? ` (${Math.floor(player.credits/100)} Lillys)`:""}.`,
+                `${sender}, you have ${player.credits} chips${sender.MemberNumber === 78366 ? ` (${Math.floor(player.credits / 100)} Lillys)` : ""}.`,
             );
         }
     };
@@ -878,7 +878,7 @@ ${forfeitsString()}
         args: string[],
     ) => {
         if (!sender.IsRoomWhitelistedOrAdmin()) {
-            this.conn.reply(msg, "Sorry, you need to be an admin");
+            this.conn.reply(msg, "Sorry, you need to be whitelisted");
             return;
         }
         if (args.length < 1) {

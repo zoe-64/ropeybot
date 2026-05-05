@@ -361,7 +361,7 @@ export class RouletteGame implements Game {
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        if (!sender.IsRoomWhitelistedOrAdmin) {
+        if (!sender.IsRoomWhitelistedOrAdmin()) {
             this.conn.reply(msg, "You don't have permission to do that.");
             return;
         }
@@ -370,7 +370,7 @@ export class RouletteGame implements Game {
             return;
         }
         this.willSpinAt = Date.now();
-            this.conn.reply(msg, "Spinning the wheel now");
+        this.conn.reply(msg, "Spinning the wheel now");
     };
 
     onCommandBet = async (
@@ -756,6 +756,7 @@ export class RouletteGame implements Game {
         this.casino.commandParser.unregister("bet");
         this.casino.commandParser.unregister("sign");
         this.casino.commandParser.unregister("wheel");
+        this.casino.commandParser.unregister("skipwait");
         this.clear();
         resolve();
     }

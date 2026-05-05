@@ -244,6 +244,7 @@ export class ThreeCardPokerGame implements Game {
         this.casino.commandParser.unregister("fold");
         this.casino.commandParser.unregister("play");
         this.casino.commandParser.unregister("sign");
+        this.casino.commandParser.unregister("skipwait");
         this.clear();
         resolve();
     }
@@ -447,6 +448,7 @@ export class ThreeCardPokerGame implements Game {
         }
         if (this.willDealAt === undefined) {
             this.conn.reply(msg, "There's no game in progress.");
+            return;
         }
         this.willDealAt = Date.now();
         this.conn.reply(msg, "The wait has been skipped.");
