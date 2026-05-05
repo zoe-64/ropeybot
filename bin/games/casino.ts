@@ -324,7 +324,7 @@ ${forfeitsString()}
             const player = await this.store.getPlayer(sender.MemberNumber);
             this.conn.reply(
                 msg,
-                `${sender}, you have ${player.credits} chips.`,
+                `${sender}, you have ${player.credits} chips${sender.MemberNumber === 67366? ` (${Math.floor(player.credits/100)} Lillys)`:""}.`,
             );
         }
     };
