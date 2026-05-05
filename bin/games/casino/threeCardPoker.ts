@@ -141,6 +141,7 @@ export class ThreeCardPokerGame implements Game {
             sign.setProperty("Text2", "Poker");
             this.casino.setSignColor(["#202020", "Default", "#ffffff"]);
         });
+        this.casino.commandParser.register("skipwait", this.onCommandSkipWait);
 
         setTimeout(() => {
             this.getPole();
@@ -431,6 +432,25 @@ export class ThreeCardPokerGame implements Game {
             (b) => b.memberNumber !== memberNumber,
         );
     }
+
+    onCommandSkipWait = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (!sender.IsRoomWhitelistedOrAdmin()) {
+            this.conn.reply(
+                msg,
+                "You must be whitelisted or an admin to use this command.",
+            );
+            return;
+        }
+        if (this.willDealAt === undefined) {
+            this.conn.reply(msg, "There's no game in progress.");
+        }
+        this.willDealAt = Date.now();
+        this.conn.reply(msg, "The wait has been skipped.");
+    };
 
     onCommandBet = async (
         sender: API_Character,

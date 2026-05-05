@@ -126,6 +126,7 @@ export class BlackjackGame implements Game {
             sign.setProperty("Text2", "Blackjack");
             this.casino.setSignColor(["#202020", "Default", "#ffffff"]);
         });
+        this.casino.commandParser.register("skipwait", this.onCommandSkipWait);
 
         setTimeout(() => {
             this.getPole();
@@ -993,6 +994,25 @@ export class BlackjackGame implements Game {
             player.bets.every((bet) => bet.standing),
         );
     }
+
+    onCommandSkipWait = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (!sender.IsRoomWhitelistedOrAdmin()) {
+            this.conn.reply(
+                msg,
+                "You must be whitelisted or an admin to use this command.",
+            );
+            return;
+        }
+        if (this.willDealAt === undefined) {
+            this.conn.reply(msg, "There's no game in progress.");
+        }
+        this.willDealAt = Date.now();
+        this.conn.reply(msg, "The wait has been skipped.");
+    };
 
     onCommandCancel = async (
         sender: API_Character,

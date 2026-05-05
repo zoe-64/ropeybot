@@ -162,6 +162,7 @@ export class RouletteGame implements Game {
         this.casino.commandParser.register("wheel", (sender, msg, args) => {
             this.getWheel();
         });
+        this.casino.commandParser.register("skipwait", this.onCommandSkipWait);
 
         // hack because otherwise an account update goes through after this item update and clears the text out
         setTimeout(() => {
@@ -354,6 +355,23 @@ export class RouletteGame implements Game {
             }
         }
     }
+
+    onCommandSkipWait = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (!sender.IsRoomWhitelistedOrAdmin) {
+            this.conn.reply(msg, "You don't have permission to do that.");
+            return;
+        }
+        if (!this.willSpinAt) {
+            this.conn.reply(msg, "There's no game in progress.");
+            return;
+        }
+        this.willSpinAt = Date.now();
+            this.conn.reply(msg, "Spinning the wheel now");
+    };
 
     onCommandBet = async (
         sender: API_Character,
@@ -584,7 +602,9 @@ export class RouletteGame implements Game {
     }
 
     public clearBetForPlayer(memberNumber: number, index: number): undefined {
-        const removedBet = this.bets.filter((b) => b.memberNumber === memberNumber)[index];
+        const removedBet = this.bets.filter(
+            (b) => b.memberNumber === memberNumber,
+        )[index];
         this.bets = this.bets.filter((b) => b !== removedBet);
     }
     public clearBetsForPlayer(memberNumber: number): undefined {
