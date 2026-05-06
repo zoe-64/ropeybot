@@ -258,6 +258,7 @@ export class BlackjackGame implements Game {
                 "You have already placed the maximum number of bets",
                 senderCharacter.MemberNumber,
             );
+            return;
         }
         if (args.length !== 1) {
             this.conn.SendMessage(
