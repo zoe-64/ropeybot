@@ -709,7 +709,7 @@ export class BlackjackGame implements Game {
         const newBetMax = parseInt(args[0])
         console.log(newBetMax)
 
-        if (newBetMax < 0 || newBetMax > HARD_MAX_PER_PLAYER){
+        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER){
             this.conn.reply(msg, "Please enter a number like /bot maxbets 3. Must be between 1 and 10.");
             return;
         }
