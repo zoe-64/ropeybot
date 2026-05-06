@@ -554,6 +554,7 @@ export class BlackjackGame implements Game {
         }
         while (player.bets[player.playingHand].standing) {
             player.playingHand++;
+            if (player.playingHand > player.bets.length) break;
         }
         this.conn.SendMessage(
             "Whisper",
