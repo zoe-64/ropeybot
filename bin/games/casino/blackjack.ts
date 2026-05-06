@@ -75,7 +75,8 @@ const AUTO_STAND_TIMEOUT_MS = 45000;
 // const AUTO_STAND_TIMEOUT_MS = 10000;
 const SPLIT_TIMEOUT_INCREASE_MS = 10000; // Time added to the auto-stand timeout when a player splits their hand
 const RESET_TIMEOUT_MS = 10000; // Time after a game ends before a new game can start
-const MAX_BETS_PER_PLAYER = 3;
+
+const HARD_MAX_PER_PLAYER = 10;
 
 export interface BlackjackPlayer {
     memberNumber: number;
@@ -108,6 +109,8 @@ export class BlackjackGame implements Game {
     public HELPCOMMANDMESSAGE = BLACKJACKHELPCOMMAND;
     public COMMANDSMESSAGE = BLACKJACKCOMMANDS;
 
+    private maxBetsPerPlayer = 3;
+
     constructor(
         private conn: API_Connector,
         casino: Casino,
@@ -119,6 +122,7 @@ export class BlackjackGame implements Game {
         this.casino.commandParser.register("stand", this.onCommandStand);
         this.casino.commandParser.register("double", this.onCommandDouble);
         this.casino.commandParser.register("split", this.onCommandSplit);
+        this.casino.commandParser.register("maxbets", this.onCommandMaxBets);
         this.casino.commandParser.register(
             "surrender",
             this.onCommandSurrender,
@@ -244,6 +248,17 @@ export class BlackjackGame implements Game {
             return;
         }
 
+        if (
+            this.players.find(
+                (p) => p.memberNumber === senderCharacter.MemberNumber,
+            )?.bets.length >= this.maxBetsPerPlayer
+        ) {
+            this.conn.SendMessage(
+                "Whisper",
+                "You have already placed the maximum number of bets",
+                senderCharacter.MemberNumber,
+            );
+        }
         if (args.length !== 1) {
             this.conn.SendMessage(
                 "Whisper",
@@ -675,6 +690,32 @@ export class BlackjackGame implements Game {
             this.resolveGame();
         }
     };
+
+    private onCommandMaxBets = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (!sender.IsRoomWhitelistedOrAdmin){
+            this.conn.reply(msg, "You must be whitelisted or an admin to use this command.");
+            return;
+        }
+
+        if (args.length != 1 || args[0].match(/[^0-9]+/)){
+            this.conn.reply(msg, "Please enter a number like /bot maxbets 3.");
+            return;
+        }
+
+        const newBetMax = parseInt(args[0])
+
+        if (newBetMax > 0 && newBetMax < HARD_MAX_PER_PLAYER){
+            this.conn.reply(msg, "Please enter a number like /bot maxbets 3. Must be between 1 and 10.");
+            return;
+        }
+
+        this.maxBetsPerPlayer = newBetMax;
+        this.conn.reply(msg, `Max bets per player has been set to ${this.maxBetsPerPlayer}.`);
+    }
 
     private async resolveGame(): Promise<void> {
         clearTimeout(this.autoStandTimeout);
@@ -1277,6 +1318,14 @@ export class BlackjackGame implements Game {
                         player.memberNumber,
                     );
                 }
+            }
+            if (player.bets.length > 1) {
+                const handString = await this.buildHandString(true, player);
+                this.conn.SendMessage(
+                    "Whisper",
+                    `${handString}`,
+                    player.memberNumber,
+                );
             }
         }
         if (this.calculateHandValue(this.dealerHand) === 21) {
