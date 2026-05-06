@@ -1322,10 +1322,9 @@ export class BlackjackGame implements Game {
                 }
             }
             if (player.bets.length > 1) {
-                const handString = await this.buildHandString(true, player);
                 this.conn.SendMessage(
                     "Whisper",
-                    `${handString}`,
+                    `You'll start playing hand Nr: ${player.playingHand +1}`,
                     player.memberNumber,
                 );
             }
