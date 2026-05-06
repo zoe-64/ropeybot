@@ -1,6 +1,10 @@
 import { resolve } from "path";
 import { waitForCondition } from "../../hub/utils";
-import { Casino, getItemsBlockingForfeit } from "../casino";
+import {
+    Casino,
+    getItemsBlockingForfeit,
+    getSlotsNeededByForfeit,
+} from "../casino";
 import { FORFEITS } from "./forfeits";
 import { Bet, Game } from "./game";
 import { Card, createDeck, getCardString, shuffleDeck } from "./pokerCards";
@@ -71,6 +75,7 @@ const AUTO_STAND_TIMEOUT_MS = 45000;
 // const AUTO_STAND_TIMEOUT_MS = 10000;
 const SPLIT_TIMEOUT_INCREASE_MS = 10000; // Time added to the auto-stand timeout when a player splits their hand
 const RESET_TIMEOUT_MS = 10000; // Time after a game ends before a new game can start
+const MAX_BETS_PER_PLAYER = 3;
 
 export interface BlackjackPlayer {
     memberNumber: number;
@@ -248,25 +253,39 @@ export class BlackjackGame implements Game {
             return;
         }
 
-        if (
-            this.players.find(
-                (b) => b.memberNumber === senderCharacter.MemberNumber,
-            )
-        ) {
-            this.conn.SendMessage(
-                "Whisper",
-                "You already placed a bet. Use !cancel to cancel it.",
-                senderCharacter.MemberNumber,
-            );
-            return;
-        }
-
         const stake = args[0];
         let stakeValue: number;
         let stakeForfeit: string;
         if (FORFEITS[stake] !== undefined) {
             stakeValue = FORFEITS[stake].value;
             stakeForfeit = stake;
+
+            let stop = false;
+            this.players
+                .filter((p) => p.memberNumber === senderCharacter.MemberNumber)
+                .forEach((p) => {
+                    p.bets.forEach((b) =>
+                        getSlotsNeededByForfeit(
+                            FORFEITS[b.stakeForfeit].items(senderCharacter),
+                        ).forEach((s) => {
+                            if (
+                                getSlotsNeededByForfeit(
+                                    FORFEITS[stakeForfeit].items(
+                                        senderCharacter,
+                                    ),
+                                ).includes(s)
+                            ) {
+                                this.conn.reply(
+                                    msg,
+                                    "You already have a bet for the required slot in play.",
+                                );
+                                stop = true;
+                                return;
+                            }
+                        }),
+                    );
+                });
+            if (stop) return;
         } else {
             if (!/^\d+$/.test(stake)) {
                 this.conn.SendMessage(
@@ -286,6 +305,7 @@ export class BlackjackGame implements Game {
                 return;
             }
         }
+
         return {
             memberNumber: senderCharacter.MemberNumber,
             memberName: senderCharacter.toString(),
@@ -684,6 +704,23 @@ export class BlackjackGame implements Game {
                     continue;
                 }
                 const winnings = this.getWinnings(playerHand, bet);
+                if (bet.stakeForfeit && winnings <= 0) {
+                    if (winnings === -100) {
+                        continue;
+                    }
+
+                    let time =
+                        FORFEITS[player.bets[0].stakeForfeit].lockTimeMs /
+                        1000 /
+                        60;
+                    time = player.bets[0].surrendered ? time / 2 : time;
+                    this.casino.applyForfeit(
+                        player.bets[0],
+                        player.bets[0].surrendered ? 0.5 : 1,
+                    );
+                    message += `${player.memberName} lost and gets ${FORFEITS[player.bets[0].stakeForfeit].name} for ${time} Minutes!\n`;
+                    sendMessage = true;
+                }
                 totalWinnings += winnings;
             }
             if (totalWinnings > 0) {
@@ -694,18 +731,6 @@ export class BlackjackGame implements Game {
                 winnerMemberData.score += totalWinnings;
                 await this.casino.store.savePlayer(winnerMemberData);
                 message += `${player.memberName} wins ${totalWinnings} chips! \n`;
-                sendMessage = true;
-            } else if (player.bets[0].stakeForfeit && totalWinnings !== -100) {
-                let time =
-                    FORFEITS[player.bets[0].stakeForfeit].lockTimeMs /
-                    1000 /
-                    60;
-                time = player.bets[0].surrendered ? time / 2 : time;
-                this.casino.applyForfeit(
-                    player.bets[0],
-                    player.bets[0].surrendered ? 0.5 : 1,
-                );
-                message += `${player.memberName} lost and gets ${FORFEITS[player.bets[0].stakeForfeit].name} for ${time} Minutes!\n`;
                 sendMessage = true;
             }
         }
@@ -789,22 +814,39 @@ export class BlackjackGame implements Game {
     };
 
     placeBet(bet: BlackjackBet): void {
-        this.players.push({
-            memberNumber: bet.memberNumber,
-            memberName: bet.memberName,
-            playingHand: 0, // first hand played
-            bets: [bet],
-        });
-        if (bet.stakeForfeit) {
-            this.conn.SendMessage(
-                "Chat",
-                `${bet.memberName} bets ${FORFEITS[bet.stakeForfeit].name} for ${bet.stake} chips`,
-            );
+        if (this.players.some((b) => b.memberNumber === bet.memberNumber)) {
+            this.players
+                .find((b) => b.memberNumber === bet.memberNumber)
+                ?.bets.push(bet);
+            if (bet.stakeForfeit) {
+                this.conn.SendMessage(
+                    "Chat",
+                    `${bet.memberName} bets ${FORFEITS[bet.stakeForfeit].name} for ${bet.stake} chips`,
+                );
+            } else {
+                this.conn.SendMessage(
+                    "Chat",
+                    `${bet.memberName} bets ${bet.stake} chips`,
+                );
+            }
         } else {
-            this.conn.SendMessage(
-                "Chat",
-                `${bet.memberName} bets ${bet.stake} chips`,
-            );
+            this.players.push({
+                memberNumber: bet.memberNumber,
+                memberName: bet.memberName,
+                playingHand: 0, // first hand played
+                bets: [bet],
+            });
+            if (bet.stakeForfeit) {
+                this.conn.SendMessage(
+                    "Chat",
+                    `${bet.memberName} bets ${FORFEITS[bet.stakeForfeit].name} for ${bet.stake} chips`,
+                );
+            } else {
+                this.conn.SendMessage(
+                    "Chat",
+                    `${bet.memberName} bets ${bet.stake} chips`,
+                );
+            }
         }
     }
 
@@ -816,6 +858,15 @@ export class BlackjackGame implements Game {
         return this.players
             .filter((b) => b.memberNumber === memberNumber)
             .flatMap((b) => b.bets);
+    }
+    public clearBetForPlayer(memberNumber: number, index: number): undefined {
+        const removedBet = this.players.filter(
+            (p) => p.memberNumber === memberNumber,
+        )[0].bets[index];
+        this.players.filter((p) => p.memberNumber === memberNumber)[0].bets =
+            this.players
+                .filter((p) => p.memberNumber === memberNumber)[0]
+                .bets.filter((b) => b !== removedBet);
     }
 
     public clearBetsForPlayer(memberNumber: number): undefined {
@@ -1040,21 +1091,75 @@ export class BlackjackGame implements Game {
             );
             return;
         }
+        if (this.getBetsForPlayer(sender.MemberNumber).length === 1) {
+            if (!this.getBetsForPlayer(sender.MemberNumber)[0].stakeForfeit) {
+                const player = await this.casino.store.getPlayer(
+                    sender.MemberNumber,
+                );
 
-        if (!this.getBetsForPlayer(sender.MemberNumber)[0].stakeForfeit) {
-            const player = await this.casino.store.getPlayer(
+                this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
+                    player.credits += b.stake;
+                });
+                await this.casino.store.savePlayer(player);
+            }
+
+            this.clearBetsForPlayer(sender.MemberNumber);
+            this.conn.SendMessage(
+                "Whisper",
+                "Bet cancelled.",
                 sender.MemberNumber,
             );
+            this.conn.SendMessage(
+                "Chat",
+                `${sender.Name} cancelled their bet.`,
+            );
+        } else {
+            if (args.length !== 1 || !args[0].match(/\d+/)) {
+                let betText = "";
+                let i = 1;
+                this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
+                    betText += `${i++}: bet for ${b.stakeForfeit ?? b.stake + " chips"}\n`;
+                });
+                this.conn.SendMessage(
+                    "Whisper",
+                    `As you have more than one bet you need to specify which one you'd like to cancel by adding the Number of the bet:\n${betText}`,
+                    sender.MemberNumber,
+                );
+                return;
+            } else {
+                let index: number = parseInt(args[0]) - 1;
+                if (
+                    index < 0 ||
+                    this.getBetsForPlayer(sender.MemberNumber).length < index
+                ) {
+                    this.conn.SendMessage(
+                        "Whisper",
+                        `You don't have an ${index}-th bet.`,
+                        sender.MemberNumber,
+                    );
+                    return;
+                }
+                const bet = this.getBetsForPlayer(sender.MemberNumber)[index];
+                if (!bet.stakeForfeit) {
+                    const player = await this.casino.store.getPlayer(
+                        sender.MemberNumber,
+                    );
+                    player.credits += bet.stake;
+                    await this.casino.store.savePlayer(player);
+                }
 
-            this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
-                player.credits += b.stake;
-            });
-            await this.casino.store.savePlayer(player);
+                this.clearBetForPlayer(sender.MemberNumber, index);
+                this.conn.SendMessage(
+                    "Whisper",
+                    "Bet cancelled.",
+                    sender.MemberNumber,
+                );
+                this.conn.SendMessage(
+                    "Chat",
+                    `${sender.Name} cancelled their bet for ${bet.stakeForfeit ?? bet.stake + " chips"}.`,
+                );
+            }
         }
-
-        this.clearBetsForPlayer(sender.MemberNumber);
-        this.conn.SendMessage("Whisper", "Bet cancelled.", sender.MemberNumber);
-        this.conn.SendMessage("Chat", `${sender.Name} cancelled their bet.`);
     };
 
     getWinnings(playerHand: Hand, bet: BlackjackBet): number {
@@ -1162,24 +1267,16 @@ export class BlackjackGame implements Game {
         }
         this.dealerHand = [this.deck.pop(), this.deck.pop()];
         for (const player of this.players) {
-            // const LillyTestCard = this.deck.pop();
-            this.playerHands.set(player.bets[0], [
-                this.deck.pop(),
-                this.deck.pop(),
-                // LillyTestCard,
-                // LillyTestCard
-            ]);
-            if (
-                this.calculateHandValue(
-                    this.playerHands.get(player.bets[0]),
-                ) === 21
-            ) {
-                player.bets[0].standing = true; // Automatically stand on blackjack
-                this.conn.SendMessage(
-                    "Whisper",
-                    `You got a blackjack! You automatically stand.`,
-                    player.memberNumber,
-                );
+            for (const bet of player.bets) {
+                this.playerHands.set(bet, [this.deck.pop(), this.deck.pop()]);
+                if (this.calculateHandValue(this.playerHands.get(bet)) === 21) {
+                    bet.standing = true; // Automatically stand on blackjack
+                    this.conn.SendMessage(
+                        "Whisper",
+                        `You got a blackjack! You automatically stand.`,
+                        player.memberNumber,
+                    );
+                }
             }
         }
         if (this.calculateHandValue(this.dealerHand) === 21) {

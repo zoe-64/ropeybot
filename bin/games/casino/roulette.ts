@@ -543,9 +543,7 @@ export class RouletteGame implements Game {
                     const player = await this.casino.store.getPlayer(
                         sender.MemberNumber,
                     );
-                    this.getBetsForPlayer(sender.MemberNumber).forEach((b) => {
-                        player.credits += b.stake;
-                    });
+                    player.credits += bet.stake;
                     await this.casino.store.savePlayer(player);
                 }
 
