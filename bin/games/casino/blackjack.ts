@@ -109,7 +109,7 @@ export class BlackjackGame implements Game {
     public HELPCOMMANDMESSAGE = BLACKJACKHELPCOMMAND;
     public COMMANDSMESSAGE = BLACKJACKCOMMANDS;
 
-    private maxBetsPerPlayer = 3;
+    private maxBetsPerPlayer = 1;
 
     constructor(
         private conn: API_Connector,

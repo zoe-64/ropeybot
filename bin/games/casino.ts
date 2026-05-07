@@ -761,7 +761,8 @@ ${forfeitsString()}
         const applyFn = FORFEITS[bet.stakeForfeit].applyItems;
         const items = FORFEITS[bet.stakeForfeit].items(char);
         const colourLayers = FORFEITS[bet.stakeForfeit].colourLayers;
-        let color = char.Appearance.InventoryGet("HairFront").GetColor();
+        let color = char?.Appearance?.InventoryGet("HairFront")?.GetColor();
+        if (!color) color = "Default";
         color = color[0] as BCColor;
 
         let storeColor = await this.store.getPlayer(bet.memberNumber);
