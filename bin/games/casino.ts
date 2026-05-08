@@ -573,7 +573,7 @@ ${forfeitsString()}
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        if (!sender.IsRoomAdmin()) {
+        if (!sender.IsRoomWhitelistedOrAdmin()) {
             this.conn.reply(msg, "Sorry, you need to be an admin");
             return;
         }

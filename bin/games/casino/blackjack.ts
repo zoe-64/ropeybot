@@ -1319,6 +1319,9 @@ export class BlackjackGame implements Game {
                         `You got a blackjack! You automatically stand.`,
                         player.memberNumber,
                     );
+                    if (player.bets.indexOf(bet) === player.playingHand) {
+                        player.playingHand++;
+                    }
                 }
             }
             if (player.bets.length > 1) {
