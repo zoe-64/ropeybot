@@ -21,24 +21,23 @@ export const makeBio = (
 ) =>
 `🌎 Azure Corporation facility A-1: Dairy Blue Farms 🌎
 =======================================================
-
-Welcome to Dairy Blue Farms, here we strive to offer a completely different milking experience!
-All visitors are free to join as long as they comply with facility specifications please use the 
+Welcome to Dairy Blue Farms, where we strive to offer a completely different milking experience!
+All visitors are free to join as long as they comply with facility specifications. Please use the 
 (scanner) to check if you are eligible to join us for a shift or two.
 
-If you are, you will be put under the care of our certified handlers, so just lay back an enjoy an 
+If you are, you will be put under the care of our certified handlers, so just lay back and enjoy an 
 unique and relaxing experience!
 
-Disclaimer : Volunteers forteit the right to pursue legal action in the case of lose of self,
+Disclaimer : Volunteers forfeit the right to pursue legal action in the case of loss of self,
 permanent physiology modifications, subliminal trai-[REDACTED].
 
 ℹ️ How To Join
 ==============
 To join just write *scanner
--Use /bot select to list your available classes, then /bot select <className> to choose one
+-Use "/bot select" to list your available classes, then "/bot select <className>" to choose one
 -Walk towards any locker to get your uniform
--Once you are dressed and have your class selected walk to the entry area over any diamont shape to get assigned a workstation
--To confirm your workstation simply walk one step back the pink area and enter again
+-Once you are dressed and have your class selected walk to the entry area over any diamond shape to get assigned a workstation
+-To confirm your workstation simply walk one step back from the pink area and then enter it again.
 
 🔧 Room Commands
 ==============
@@ -46,10 +45,9 @@ ${normalPlayerCommandGuideLines.join("\n")}
 
 🎼 Moonstrel Guide
 ==============
--Moonstrel skills generate notes: white/purple = self, red/orange = drive, green = restore, blue = guard, gold = crown
--Your note memory keeps the last 5 notes played and resolves phrases from longest pattern to shortest
--Songs are stronger phrases that are stored in your buffer and must be performed manually with Sing or replayed with Encore
--Melodies activate immediately when their pattern is completed and occupy melody slots until they expire
+-Moonstrel skills generate notes, check the description to see which ones.
+-Your performance keeps the last 5 notes played which can play melodies or songs (from longest pattern to shortest)
+-Melodies activate their effects automatically once the pattern is played, songs are stored into a buffer, to play the first song in the buffer, use the skill Sing.
 -Playing the same active song again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
 -Active songs project their buffs to neighboring occupied workstations instead of the singer, and song range equals song level up to 3
 -Playing the same active melody again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
