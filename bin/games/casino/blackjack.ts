@@ -88,6 +88,7 @@ export interface BlackjackPlayer {
 export interface BlackjackBet extends Bet {
     standing: boolean;
     surrendered: boolean;
+    isSplit: boolean;
 }
 
 type Hand = Card[];
@@ -330,6 +331,7 @@ export class BlackjackGame implements Game {
             stakeForfeit,
             standing: false,
             surrendered: false,
+            isSplit: false,
         };
     }
 
@@ -579,7 +581,9 @@ export class BlackjackGame implements Game {
             stakeForfeit: currentBet.stakeForfeit,
             standing: false,
             surrendered: false,
+            isSplit: true,
         });
+        currentBet.isSplit = true;
         const newBet = player.bets[player.bets.length - 1];
         this.playerHands.set(newBet, [hand[1], this.deck.pop()]);
         hand[1] = this.deck.pop();
@@ -1228,8 +1232,7 @@ export class BlackjackGame implements Game {
             if (
                 playerHandValue === 21 &&
                 playerHand.length === 2 &&
-                this.players.find((p) => p.memberNumber === bet.memberNumber)
-                    .bets.length === 1
+                !bet.isSplit
             ) {
                 // only when not split
                 return Math.floor(bet.stake * 1.5);
@@ -1259,8 +1262,7 @@ export class BlackjackGame implements Game {
             if (
                 playerHandValue === 21 &&
                 playerHand.length === 2 &&
-                this.players.find((p) => p.memberNumber === bet.memberNumber)
-                    .bets.length === 1
+                !bet.isSplit
                 // only when not split
             ) {
                 return Math.floor(bet.stake * 2.5);
