@@ -252,7 +252,7 @@ export const SERVICES: Record<string, Service> = {
     outfitlisa: {
         name: "Outfit from Lisa",
         description: "Let Lisa (201046) make an outfit just for you~",
-        value: 250,
+        value: 500,
     },
     /*"massage": {
         name: "Pixie Massage",
