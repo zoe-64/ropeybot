@@ -1300,7 +1300,7 @@ export class BlackjackGame implements Game {
         this.autoStandTimeout = setInterval(() => {
             this.onStandTimeout();
         }, 1000);
-        if (this.deck.length < this.players.length * 7 + 5) {
+        if (this.deck.length < this.players.reduce((a, b) => a + b.bets.length, 0) * 7 + 5) {
             this.conn.SendMessage(
                 "Chat",
                 "The deck is running low, shuffling a new deck.",
