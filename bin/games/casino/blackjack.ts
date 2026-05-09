@@ -381,7 +381,7 @@ export class BlackjackGame implements Game {
         const playerValue = this.calculateHandValue(hand);
         if (playerValue > 20) {
             bet.standing = true; // Player automatically stands after busting or on 21
-            if (player.bets.length > player.playingHand + 1) {
+            while (player.bets[player.playingHand].standing) {
                 player.playingHand++;
             }
         }
@@ -470,7 +470,9 @@ export class BlackjackGame implements Game {
         hand.push(this.deck.pop());
         currentBet.standing = true;
         if (player.bets.length > player.playingHand + 1) {
-            player.playingHand++;
+            while (player.bets[player.playingHand].standing) {
+                player.playingHand++;
+            }
             const handString = await this.buildHandString(true, player);
             this.conn.SendMessage(
                 "Whisper",
@@ -702,27 +704,36 @@ export class BlackjackGame implements Game {
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        if (!sender.IsRoomWhitelistedOrAdmin){
-            this.conn.reply(msg, "You must be whitelisted or an admin to use this command.");
+        if (!sender.IsRoomWhitelistedOrAdmin) {
+            this.conn.reply(
+                msg,
+                "You must be whitelisted or an admin to use this command.",
+            );
             return;
         }
 
-        if (args.length != 1 || args[0].match(/[^0-9]+/)){
+        if (args.length != 1 || args[0].match(/[^0-9]+/)) {
             this.conn.reply(msg, "Please enter a number like /bot maxbets 3.");
             return;
         }
 
-        const newBetMax = parseInt(args[0])
-        console.log(newBetMax)
+        const newBetMax = parseInt(args[0]);
+        console.log(newBetMax);
 
-        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER){
-            this.conn.reply(msg, "Please enter a number like /bot maxbets 3. Must be between 1 and 10.");
+        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER) {
+            this.conn.reply(
+                msg,
+                "Please enter a number like /bot maxbets 3. Must be between 1 and 10.",
+            );
             return;
         }
 
         this.maxBetsPerPlayer = newBetMax;
-        this.conn.reply(msg, `Max bets per player has been set to ${this.maxBetsPerPlayer}.`);
-    }
+        this.conn.reply(
+            msg,
+            `Max bets per player has been set to ${this.maxBetsPerPlayer}.`,
+        );
+    };
 
     private async resolveGame(): Promise<void> {
         clearTimeout(this.autoStandTimeout);
@@ -1302,13 +1313,18 @@ export class BlackjackGame implements Game {
         this.autoStandTimeout = setInterval(() => {
             this.onStandTimeout();
         }, 1000);
-        if (this.deck.length < this.players.reduce((a, b) => a + b.bets.length, 0) * 7 + 5) {
+        if (
+            this.deck.length <
+            this.players.reduce((a, b) => a + b.bets.length, 0) * 7 + 5
+        ) {
             this.conn.SendMessage(
                 "Chat",
                 "The deck is running low, shuffling a new deck.",
             );
             this.createShoe(
-                this.calculateDeckCountForRound(this.players.reduce((a, b) => a + b.bets.length, 0)),
+                this.calculateDeckCountForRound(
+                    this.players.reduce((a, b) => a + b.bets.length, 0),
+                ),
             );
         }
         this.dealerHand = [this.deck.pop(), this.deck.pop()];
@@ -1330,7 +1346,7 @@ export class BlackjackGame implements Game {
             if (player.bets.length > 1) {
                 this.conn.SendMessage(
                     "Whisper",
-                    `You'll start playing hand Nr: ${player.playingHand +1}`,
+                    `You'll start playing hand Nr: ${player.playingHand + 1}`,
                     player.memberNumber,
                 );
             }
