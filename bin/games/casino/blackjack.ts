@@ -1306,7 +1306,7 @@ export class BlackjackGame implements Game {
                 "The deck is running low, shuffling a new deck.",
             );
             this.createShoe(
-                this.calculateDeckCountForRound(this.players.length),
+                this.calculateDeckCountForRound(this.players.reduce((a, b) => a + b.bets.length, 0)),
             );
         }
         this.dealerHand = [this.deck.pop(), this.deck.pop()];
