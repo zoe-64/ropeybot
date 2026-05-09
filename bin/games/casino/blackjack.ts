@@ -230,6 +230,7 @@ export class BlackjackGame implements Game {
         this.casino.commandParser.unregister("double");
         this.casino.commandParser.unregister("sign");
         this.casino.commandParser.unregister("skipwait");
+        this.casino.commandParser.unregister("maxbets");
         this.clear();
         resolve();
     }

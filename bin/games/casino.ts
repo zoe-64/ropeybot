@@ -28,6 +28,7 @@ import { RouletteGame } from "./casino/roulette";
 import { CasinoStore, Player } from "./casino/casinostore";
 import { generatePassword, remainingTimeString } from "../utils";
 import {
+    Forfeit,
     FORFEITS,
     forfeitsString,
     restraintsRemoveString,
@@ -449,6 +450,7 @@ ${forfeitsString()}
         }
 
         let target: API_Character | undefined;
+        let forfeit: Forfeit | undefined;
         if (serviceName === "player") {
             if (args.length < 2) {
                 this.conn.reply(
@@ -479,6 +481,62 @@ ${forfeitsString()}
             }
         }
 
+        if (serviceName === "restraint") {
+            if (args.length < 3) {
+                this.conn.reply(
+                    msg,
+                    "Usage: buy restraint <name or member number> <name of the forfeit>",
+                );
+                return;
+            }
+            target = this.conn.chatRoom.findCharacter(args[1]);
+            forfeit = FORFEITS[args[2]];
+            if (!target) {
+                this.conn.reply(msg, "I can't find that person.");
+                return;
+            }
+            if (!forfeit) {
+                this.conn.reply(msg, "I can't find that forfeit.");
+                return;
+            }
+
+            if (forfeit.name === "Cage") {
+                this.conn.reply(
+                    msg,
+                    "To buy cages please use 'buy player' instead",
+                );
+                return;
+            }
+
+            if (target.MemberNumber === sender.MemberNumber) {
+                this.conn.reply(msg, "You can't buy your own codes.");
+                return;
+            }
+
+            if (
+                !target.Appearance.InventoryGet(forfeit.items(target)[0].Group)
+            ) {
+                this.conn.reply(
+                    msg,
+                    `It doesn't look like that player is wearing ${forfeit.name}.`,
+                );
+                return;
+            }
+
+            if (
+                target.Appearance.InventoryGet(
+                    forfeit.items(target)[0].Group,
+                ).getData().Property.LockMemberNumber !==
+                this.conn.Player.MemberNumber
+            ) {
+                this.conn.reply(
+                    msg,
+                    `You can only buy codes of my restraints, not others.`,
+                );
+                return;
+            }
+        }
+
         if (serviceName === "bonus") {
             if (this.multiplier != 1) {
                 this.conn.reply(msg, "There is already a bonus round active.");
@@ -492,6 +550,11 @@ ${forfeitsString()}
         }
 
         const player = await this.store.getPlayer(sender.MemberNumber);
+        if (!service.value) {
+            if (serviceName === "restraint") {
+                service.value = forfeit.value * 2;
+            }
+        }
         if (player.credits < service.value) {
             this.conn.reply(msg, "You don't have enough chips.");
             return;
@@ -526,6 +589,19 @@ ${forfeitsString()}
                 "Chat",
                 `${sender} has bought ${target} and is now the proud owner of an unfortunate gambler.`,
             );
+        } else if (serviceName === "restraint") {
+            this.conn.SendMessage(
+                "Chat",
+                `${sender} has bought the codes to ${target}'s ${forfeit.name}.`,
+            );
+            this.conn.SendMessage(
+                "Whisper",
+                `The code to ${forfeit.name} on ${target} is: ${target.Appearance.InventoryGet(forfeit.items(target)[0].Group).getData().Property.Password}.`,
+                sender.MemberNumber,
+            );
+            this.lockedItems
+                .get(target.MemberNumber)
+                ?.delete(forfeit.items(sender)[0].Group);
         } else if (serviceName === "cocktail") {
             const keys = Object.keys(COCKTAILS);
             const randomKey = keys[Math.floor(Math.random() * keys.length)];

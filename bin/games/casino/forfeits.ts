@@ -16,7 +16,7 @@ import { API_Character, AssetGet, BC_AppearanceItem } from "bc-bot";
 import { generatePassword } from "../../utils";
 import { PET_EARS } from "../petspa";
 
-interface Forfeit {
+export interface Forfeit {
     name: string;
     value: number;
     items: (player: API_Character) => BC_AppearanceItem[];
@@ -221,7 +221,9 @@ export const FORFEITS: Record<string, Forfeit> = {
 interface Service {
     name: string;
     description: string;
-    value: number;
+    value?: number;
+    priceString?: string;
+    commandExample?: string;
 }
 
 // TODO buy outfits?
@@ -237,6 +239,13 @@ export const SERVICES: Record<string, Service> = {
         name: "Buy a caged player",
         description: "Why waste their misfortune?",
         value: 100,
+        commandExample: "/bot buy player <name or member number>",
+    },
+    restraint: {
+        name: "Buy the code to a restriant of a player",
+        description: "Guaranteed to be the correct code - usually.",
+        priceString: "2x the restraint value",
+        commandExample: "/bot buy restraint <name or member number> <forfeit name>",
     },
     lap: {
         name: "Sit in Lilly's lap",
@@ -411,9 +420,11 @@ export function restraintsRemoveString(): string {
 }
 
 function commandForService(name: string): string {
+    if (SERVICES[name].commandExample) {
+        return SERVICES[name].commandExample;
+    }
     return (
-        `/bot buy ${name}` +
-        (name === "player" ? " <name or member number>" : "")
+        `/bot buy ${name}`
     );
 }
 
@@ -421,7 +432,7 @@ export function servicesString(): string {
     return Object.entries(SERVICES)
         .map(
             ([name, s]) =>
-                `${s.name}: ${s.value} chips\n${s.description}\n${commandForService(name)}\n`,
+                `${s.name}: ${s.value ? s.value + " chips" : s.priceString}\n${s.description}\n${commandForService(name)}\n`,
         )
         .join("\n");
 }
