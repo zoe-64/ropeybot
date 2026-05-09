@@ -479,6 +479,17 @@ ${forfeitsString()}
                 );
                 return;
             }
+
+            if (
+                target.Appearance.InventoryGet("ItemDevices")?.getData()
+                    .Property.LockMemberNumber !== this.conn.Player.MemberNumber
+            ) {
+                this.conn.reply(
+                    msg,
+                    "Sorry, that player is not for sale by me",
+                );
+                return;
+            }
         }
 
         if (serviceName === "restraint") {
