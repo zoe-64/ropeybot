@@ -381,7 +381,7 @@ export class BlackjackGame implements Game {
         const playerValue = this.calculateHandValue(hand);
         if (playerValue > 20) {
             bet.standing = true; // Player automatically stands after busting or on 21
-            while (player.bets[player.playingHand].standing) {
+            while (player.bets[player.playingHand]?.standing) {
                 player.playingHand++;
             }
         }
@@ -470,7 +470,7 @@ export class BlackjackGame implements Game {
         hand.push(this.deck.pop());
         currentBet.standing = true;
         if (player.bets.length > player.playingHand + 1) {
-            while (player.bets[player.playingHand].standing) {
+            while (player.bets[player.playingHand]?.standing) {
                 player.playingHand++;
             }
             const handString = await this.buildHandString(true, player);
@@ -595,7 +595,7 @@ export class BlackjackGame implements Game {
         if (this.calculateHandValue(this.playerHands.get(newBet)) > 20) {
             newBet.standing = true; // Player automatically stands on 21
         }
-        while (player.bets[player.playingHand].standing) {
+        while (player.bets[player.playingHand]?.standing) {
             player.playingHand++;
             if (player.playingHand > player.bets.length) break;
         }
@@ -850,7 +850,7 @@ export class BlackjackGame implements Game {
         if (player.bets.length > player.playingHand + 1) {
             player.playingHand++;
             const originalHand = player.playingHand;
-            while (player.bets[player.playingHand].standing) {
+            while (player.bets[player.playingHand]?.standing) {
                 player.playingHand++;
             }
             const handString = await this.buildHandString(true, player);
