@@ -631,7 +631,7 @@ export class BlackjackGame implements Game {
         const player = this.players.find(
             (b) => b.memberNumber === sender.MemberNumber,
         );
-        const bet = player.bets[0];
+        const bet = player.bets[player.playingHand];
         if (!bets) {
             this.conn.SendMessage(
                 "Whisper",
@@ -646,7 +646,15 @@ export class BlackjackGame implements Game {
                 sender.MemberNumber,
             );
             return;
-        } else if (this.playerHands.get(bet) === undefined) {
+        } else if (bet.isSplit) {
+            this.conn.SendMessage(
+                "Whisper",
+                "You can't surrender on a split hand.",
+                sender.MemberNumber,
+            );
+            return;
+        }
+        else if (this.playerHands.get(bet) === undefined) {
             this.conn.SendMessage(
                 "Whisper",
                 "You don't have a hand to surrender.",
@@ -769,15 +777,15 @@ export class BlackjackGame implements Game {
                     }
 
                     let time =
-                        FORFEITS[player.bets[0].stakeForfeit].lockTimeMs /
+                        FORFEITS[bet.stakeForfeit].lockTimeMs /
                         1000 /
                         60;
-                    time = player.bets[0].surrendered ? time / 2 : time;
+                    time = bet.surrendered ? time / 2 : time;
                     this.casino.applyForfeit(
-                        player.bets[0],
-                        player.bets[0].surrendered ? 0.5 : 1,
+                        bet,
+                        bet.surrendered ? 0.5 : 1,
                     );
-                    message += `${player.memberName} lost and gets ${FORFEITS[player.bets[0].stakeForfeit].name} for ${time} Minutes!\n`;
+                    message += `${player.memberName} lost and gets ${FORFEITS[bet.stakeForfeit].name} for ${time} Minutes!\n`;
                     sendMessage = true;
                 }
                 totalWinnings += winnings;
@@ -910,7 +918,7 @@ export class BlackjackGame implements Game {
     }
 
     getBets(): BlackjackBet[] {
-        return this.players.map((b) => b.bets[0]);
+        return this.players.flatMap((b) => b.bets);
     }
     public getBetsForPlayer(memberNumber: number): BlackjackBet[] {
         // console.log(this.players.find((b) => b.memberNumber === memberNumber));
