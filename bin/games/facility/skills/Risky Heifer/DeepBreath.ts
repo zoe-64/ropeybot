@@ -17,7 +17,7 @@ export class DeepBreath implements Skill {
   priority: number = 5;
 
   private successRateDecreaseBase = 0.2; // applied as negative to success rate
-  private rewardModifierBase = 0.9;
+  private rewardModifierBase = 1.0;
 
   constructor(args: {
     skillId: number;
@@ -71,7 +71,7 @@ export class DeepBreath implements Skill {
     }
 
     const successRateDecrease = -this.successRateDecreaseBase; // e.g., -0.2
-    const rewardModifier = this.rewardModifierBase + this.skillLevel * 0.1;
+    const rewardModifier = this.rewardModifierBase + this.skillLevel * 0.08;
 
     console.log(
       `DEEPBREATH: ${name} setting GasIntake successRateModifier to ${successRateDecrease}`

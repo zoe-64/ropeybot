@@ -10,13 +10,13 @@ export class Focus implements Skill {
     description: string;
     upgrade_description: string;
 
-    validMessageTypes: ChatMessageType[] = ["Chat", "Emote"];
+    validMessageTypes: ChatMessageType[] = ["Emote"];
     triggerTokens: string[] = ["focus", "focused", "focuses", "concentrates", "concentrating"];
     energyCost: number = 40;
     priority: number = 10;
 
-    private rewardBoostBase = 0.39;
-    private rewardBoostPerLevel = 0.01;
+    private rewardBoostBase = 0.30;
+    private rewardBoostPerLevel = 0.015;
     private boostedSkills = ["Moo", "LiftChest"];
 
     constructor(args: {

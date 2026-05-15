@@ -105,18 +105,34 @@ export type SongModule = PlayerModule & {
 };
 
 const songSourcePrefix = "song:";
+const SONG_STACK_CAP = 3;
 
-function multiplierFromLevel(base: number, level: number): number {
-  if (level <= 1) return base;
-  const delta = base - 1;
-  return Number((1 + delta * level).toFixed(3));
+function extraStacks(level: number): number {
+  return Math.max(0, Math.min(SONG_STACK_CAP, level) - 1);
+}
+
+function scaledRewardMultiplier(base: number, level: number): number {
+  return Number((base + 0.04 * extraStacks(level)).toFixed(3));
+}
+
+function scaledEnergyMultiplier(base: number, level: number, floor = 0.85): number {
+  return Number(Math.max(floor, base - 0.03 * extraStacks(level)).toFixed(3));
+}
+
+function scaledQualityMultiplier(base: number, level: number, cap = 1.3): number {
+  return Number(Math.min(cap, base + 0.04 * extraStacks(level)).toFixed(3));
+}
+
+function scaledBullMultiplier(base: number, level: number, cap = 1.3): number {
+  return Number(Math.min(cap, base + 0.04 * extraStacks(level)).toFixed(3));
 }
 
 function scaleModifier(modifier: AnyModifier, level: number): AnyModifier {
   return {
     ...modifier,
-    rewardMultiplier: modifier.rewardMultiplier != null ? multiplierFromLevel(modifier.rewardMultiplier, level) : undefined,
-    energyCostMultiplier: modifier.energyCostMultiplier != null ? Math.max(0.1, multiplierFromLevel(modifier.energyCostMultiplier, level)) : undefined,
+    rewardMultiplier: modifier.rewardMultiplier != null ? scaledRewardMultiplier(modifier.rewardMultiplier, level) : undefined,
+    // Self-melody energy discounts stay fixed per variant; stacking extends uptime instead of deepening discounts.
+    energyCostMultiplier: modifier.energyCostMultiplier,
   };
 }
 
@@ -124,11 +140,11 @@ function scaleQualityModifier(modifier: QualityModifier, level: number): Quality
   return {
     ...modifier,
     add: modifier.add != null ? modifier.add * level : undefined,
-    mult: modifier.mult != null ? multiplierFromLevel(modifier.mult, level) : undefined,
+    mult: modifier.mult != null ? scaledQualityMultiplier(modifier.mult, level) : undefined,
     successAdd: modifier.successAdd != null ? modifier.successAdd * level : undefined,
     failAdd: modifier.failAdd != null ? modifier.failAdd * level : undefined,
-    successMult: modifier.successMult != null ? multiplierFromLevel(modifier.successMult, level) : undefined,
-    failMult: modifier.failMult != null ? multiplierFromLevel(modifier.failMult, level) : undefined,
+    successMult: modifier.successMult != null ? scaledQualityMultiplier(modifier.successMult, level) : undefined,
+    failMult: modifier.failMult != null ? scaledQualityMultiplier(modifier.failMult, level) : undefined,
   };
 }
 
@@ -271,7 +287,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
         for (const [index, entry] of (song.bullModifiers ?? []).entries()) {
           bull.modifiers.push({
             ...entry.modifier,
-            chargeMultiplier: entry.modifier.chargeMultiplier != null ? multiplierFromLevel(entry.modifier.chargeMultiplier, song.stackLevel) : undefined,
+            chargeMultiplier: entry.modifier.chargeMultiplier != null ? scaledBullMultiplier(entry.modifier.chargeMultiplier, song.stackLevel) : undefined,
             remainingShifts: entry.remainingShifts ?? song.remainingShifts,
             sourceId: `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:bull:${index}`,
           });
@@ -334,7 +350,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
     if (existing.variant === resolved.variant) {
       existing.remainingShifts += 1;
       existing.performedAt = Date.now();
-      existing.stackLevel += 1;
+      existing.stackLevel = Math.min(SONG_STACK_CAP, existing.stackLevel + 1);
       syncActiveEffects();
       return existing;
     }

@@ -11,7 +11,7 @@ export function scaledMoonstrelEnergy(player: PlayerCore, base: number, skillLev
     return base + Math.floor((classing.state.maxEnergy ?? 0) * 0.1);
 }
 
-export function smallFlatReward(base: number, skillLevel: number, perLevel: number = 0.2): number {
+export function smallFlatReward(base: number, skillLevel: number, perLevel: number = 0.15): number {
     return Number((base + Math.max(0, skillLevel - 1) * perLevel).toFixed(2));
 }
 

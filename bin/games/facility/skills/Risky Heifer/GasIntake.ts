@@ -29,11 +29,11 @@ export class GasIntake implements Skill {
   private roundSuccesses = 0;
   private baseSuccess: number;
   private currentSuccess: number;
-  private decayRate: number = 0.2; 
+  private decayRate: number = 0.15; 
   private rewardModifier: number = 1;
   private successRateModifier: number = 0;
   private scoreIncrease: number = 1;
-  private failureLossMultiplier: number = 0.65;
+  private failureLossMultiplier: number = 0.8;
   private failureMessage?: string;
 
   constructor(args: {
@@ -50,8 +50,8 @@ export class GasIntake implements Skill {
     this.upgrade_description = args.upgrade_description;
 
     this.baseSuccess = this.isMaxLevel()
-      ? 1
-      : Math.min(0.2 + 0.1 * this.skillLevel, 0.9);
+      ? 0.9
+      : Math.min(0.25 + 0.07 * this.skillLevel, 0.9);
     this.currentSuccess = this.baseSuccess;
     this.failureMessage = dialog.numbness.gasNumb;
   }
@@ -162,19 +162,19 @@ export class GasIntake implements Skill {
         break;
       case 2:
         whisperText = dialog.numbness.numbness5;
-        reward = 2;
+        reward = 3;
         break;
       case 3:
         whisperText = dialog.numbness.numbness6;
-        reward = 3;
+        reward = 4;
         break;
       case 4:
         whisperText = dialog.numbness.numbness7;
-        reward = 4;
+        reward = 5;
         break;
       case 5:
         whisperText = dialog.numbness.numbness8;
-        reward = 5;
+        reward = 6;
         break;
       default:
         reward = 0;

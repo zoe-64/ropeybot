@@ -19,13 +19,12 @@ export class SkillEngine {
     const scoring    = player.tryGet<ScoringModule>("scoring");
 
     const skills = skillsMod.list();
-    const mods   = skillsMod.state.activeModifiers;
-
     const warnings: string[] = [];
     const messages: string[] = [];
 
     for (const skill of skills) {
       if (!skill.validInput(data)) continue;
+      const mods = skillsMod.state.activeModifiers;
 
       const baseEnergy = typeof (skill as any).computeEnergy === "function"
         ? (skill as any).computeEnergy(player)
@@ -35,7 +34,7 @@ export class SkillEngine {
       // energy check against classing (or another energy source)
       if (!classing || classing.state.currentEnergy < effEnergy) {
         if (classing && classing.state.currentEnergy < effEnergy) {
-          warnings.push(`Not enough energy to use ${skill.skillName}. Need ${effEnergy}, you have ${classing.state.currentEnergy})`);
+          warnings.push(`Not enough energy to use ${skill.skillName}. Need ${effEnergy}, you have ${classing.state.currentEnergy}`);
         }
         continue;
       }
@@ -72,11 +71,15 @@ export class SkillEngine {
       for (const e of finalEffects) this.applyEffect(player, e);
 
       // collect per-skill feedback
-      messages.push(`You used ${skill.skillName}, energy cost: ${effEnergy}, reward: ${finalReward.toFixed(2)})`);
+      messages.push(`You used ${skill.skillName}, energy cost: ${effEnergy}, reward: ${finalReward.toFixed(2)}`);
       if (base.feedback?.length) messages.push(...base.feedback);
     }
 
-    if (messages.length > 0 || warnings.length > 0) return [...messages, ...warnings].join("\n");
+    if (messages.length > 0 || warnings.length > 0) {
+      const output = [...messages, ...warnings];
+      output[output.length - 1] = `${output[output.length - 1]})`;
+      return output.join("\n");
+    }
     return "NonSkill";
   }
 

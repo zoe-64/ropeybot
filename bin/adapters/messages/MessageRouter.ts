@@ -19,6 +19,8 @@ export interface MessageRouterOptions {
 /** Generic router: subscribes to external messages, ensures PlayerCore instances, and delegates handling */
 export class MessageRouter {
   private readonly players = new Map<number, PlayerCore>();
+  private readonly recentMessages = new Map<number, { fingerprint: string; at: number }>();
+  private readonly duplicateWindowMs = 1500;
 
   constructor(
     private readonly bus: DomainEventBus,
@@ -61,6 +63,14 @@ export class MessageRouter {
       SenderId: identity.id,
       SenderName: identity.name,
     };
+
+    const fingerprint = `${incoming.Type}:${incoming.Content}`;
+    const now = Date.now();
+    const recent = this.recentMessages.get(identity.id);
+    if (recent && recent.fingerprint === fingerprint && now - recent.at <= this.duplicateWindowMs) {
+      return;
+    }
+    this.recentMessages.set(identity.id, { fingerprint, at: now });
 
     await this.opts.onTextMessage?.(player, incoming);
   }

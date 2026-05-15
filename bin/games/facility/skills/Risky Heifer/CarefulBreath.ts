@@ -16,8 +16,7 @@ export class CarefulBreath implements Skill {
   energyCost: number = 20;
   priority: number = 5;
 
-  private successRateIncrementBase = 0.02;
-  private rewardModifierBase = 0.6;
+  private successRateIncrementBase = 0.03;
 
   constructor(args: {
     skillId: number;
@@ -77,7 +76,7 @@ export class CarefulBreath implements Skill {
     }
 
     const successRateIncrement = this.skillLevel * this.successRateIncrementBase;
-    const rewardModifier = Math.max(0.65, 0.95 - this.skillLevel * 0.03);
+    const rewardModifier = Math.max(0.70, 0.95 - this.skillLevel * 0.025);
 
     console.log(
       `CAREFULBREATH: ${name} setting GasIntake successRateModifier to ${successRateIncrement}`

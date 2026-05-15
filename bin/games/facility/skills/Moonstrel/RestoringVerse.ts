@@ -35,7 +35,7 @@ export class RestoringVerse implements Skill {
     }
 
     use(player: PlayerCore): SkillResult {
-        const reward = smallFlatReward(4, this.skillLevel);
+        const reward = smallFlatReward(3.5, this.skillLevel);
         const colors = isMoonstrelMaxLevel(this.skillLevel) ? ["green", "gold"] as const : ["green"] as const;
         const phrase = performMoonstrelNotes(player, this.skillName, [...colors]);
         return { energy: this.computeEnergy(player), reward, effects: phrase.effects, feedback: phrase.feedback };

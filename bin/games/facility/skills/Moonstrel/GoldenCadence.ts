@@ -31,7 +31,7 @@ export class GoldenCadence implements Skill {
     canExecute(player: PlayerCore): boolean { return true; }
 
     computeEnergy(player: PlayerCore): number {
-        return currentEnergyPercentCost(player, 0.9, 0.7, this.skillLevel);
+        return currentEnergyPercentCost(player, 0.85, 0.65, this.skillLevel);
     }
 
     use(player: PlayerCore): SkillResult {

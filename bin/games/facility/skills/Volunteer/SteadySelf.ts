@@ -12,7 +12,7 @@ export class SteadySelf implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Emote"];
-    triggerTokens: string[] = ["steady", "self"];
+    triggerTokens: string[] = ["steady", "self", "steadyself", "steady self"];
     energyCost: number = 20;
     priority: number = 10;
 
@@ -40,13 +40,17 @@ export class SteadySelf implements Skill {
         if (!validMessageType) return false;
 
         const input = (data.Content ?? "").toLowerCase();
+        const normalized = input.replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+        const directInvocations = new Set(["steady", "steadyself", "steady self"]);
+        if (directInvocations.has(normalized)) return true;
+
         const patterns: RegExp[] = [
             /\b(steady|steadies|steadying|brace|braces|bracing|compose|composes|composing|center|centers|centering)\s+(himself|herself|themself|themselves)\b/,
             /\b(steady|steadies|steadying|brace|braces|bracing|compose|composes|composing|center|centers|centering)\s+(his|her|their)\s+(body|breathing|posture)\b/,
             /\b(regain|regains|regaining|recover|recovers|recovering)\s+(his|her|their)\s+(balance|composure|breathing)\b/,
         ];
 
-        return patterns.some((p) => p.test(input));
+        return patterns.some((p) => p.test(normalized));
     }
 
     canExecute(player: PlayerCore): boolean {

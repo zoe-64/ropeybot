@@ -36,7 +36,7 @@ export class Encore implements Skill {
     }
 
     computeEnergy(player: PlayerCore): number {
-        return currentEnergyPercentCost(player, 1.0, 0.9, this.skillLevel);
+        return currentEnergyPercentCost(player, 0.9, 0.75, this.skillLevel);
     }
 
     use(player: PlayerCore): SkillResult {

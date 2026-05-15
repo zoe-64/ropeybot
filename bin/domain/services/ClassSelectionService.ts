@@ -25,7 +25,7 @@ export class ClassSelectionService {
 
     let msg = "(\nYou can select a class with /bot select <ClassName>\n\nYour available classes are:\n";
     for (const c of classes) {
-      msg += `|| ${c.class_name} (Level ${c.class_level}) ||\n-> ${c.class_description}\n`;
+      msg += `|| ${c.class_name} [Level ${c.class_level}] ||\n-> ${c.class_description}\n`;
     }
     this.messages.whisper(player.identity.id, msg);
   }

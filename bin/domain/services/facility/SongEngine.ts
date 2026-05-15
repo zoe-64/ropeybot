@@ -109,11 +109,10 @@ export class SongEngine {
       return { effects: [], feedback: ["No stored song is ready in your buffer."] };
     }
 
-    const auraRange = Math.min(active.stackLevel, 3);
     const feedback = [
       `Performed ${(active.variant ?? "base")} song ${active.name}. Buffer: ${song.listStoredSongs().length}/${song.getBufferCapacity()}.`,
     ];
-    feedback.push(`Song now buffs neighboring stations at range ${auraRange} for ${active.remainingShifts} shift(s). Level ${active.stackLevel}.`);
+    feedback.push(`Song now buffs occupied adjacent stations for ${active.remainingShifts} shift(s). Level ${active.stackLevel}.`);
     return {
       effects: [
         {
@@ -148,7 +147,6 @@ export class SongEngine {
       return { effects: [], feedback: ["No previously played song is available for encore."] };
     }
 
-    const auraRange = Math.min(active.stackLevel, 3);
     return {
       effects: [
         {
@@ -170,7 +168,7 @@ export class SongEngine {
       ],
       feedback: [
         `Encore replayed ${(active.variant ?? "base")} song ${active.name}.`,
-        `Song now buffs neighboring stations at range ${auraRange} for ${active.remainingShifts} shift(s). Level ${active.stackLevel}.`,
+        `Song now buffs occupied adjacent stations for ${active.remainingShifts} shift(s). Level ${active.stackLevel}.`,
       ],
     };
   }

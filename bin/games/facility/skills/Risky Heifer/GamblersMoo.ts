@@ -14,10 +14,10 @@ export class GamblersMoo implements Skill {
     energyCost: number = 10;
     priority: number = 5;
 
-    private criticalThresholdBase = 40;
+    private criticalThresholdBase = 35;
     private failureThreshold = 80;
-    private criticalMultiplier = 2;
-    private failureMultiplier = 0.5;
+    private criticalMultiplier = 2.2;
+    private failureMultiplier = 0.4;
 
     constructor(args: {
         skillId: number;
@@ -49,7 +49,10 @@ export class GamblersMoo implements Skill {
         const levelMultiplier = 1 + (0.1 * this.skillLevel);
         const baseReward = baseIncrease * levelMultiplier;
         const playerRoll = Math.floor(Math.random() * 100) + 1;
-        const criticalThreshold = Math.min(this.criticalThresholdBase + this.skillLevel, this.failureThreshold);
+        const criticalThreshold = Math.min(
+            Math.floor(this.criticalThresholdBase + (1.5 * this.skillLevel)),
+            70,
+        );
         const isCritical = playerRoll <= criticalThreshold;
         const isFailure = playerRoll > this.failureThreshold || playerRoll === 100;
         const reward = isCritical

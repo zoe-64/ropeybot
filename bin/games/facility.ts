@@ -120,6 +120,7 @@ export class Facility{
     private lastShiftProduction = new Map<number, number>();
     private selectedClassesThisSession = new Map<number, Set<number>>();
     private readonly moonstrelAuraSourcePrefix = "moonstrel:aura:";
+    private readonly moonstrelAuraMoneyPerStation = 40;
 
     public constructor(private conn: API_Connector){
 
@@ -240,6 +241,10 @@ export class Facility{
                 remainingShifts?: number;
                 summary?: string;
             });
+            this.rewardActivatedMoonstrelSong(evt.payload as {
+                playerId?: number;
+                kind?: "song" | "melody";
+            });
         });
 
         const engine = new SkillEngine();
@@ -293,6 +298,7 @@ export class Facility{
         //Room commands definition
         //Super admin commands
         this.commandParser.register("farm", this.onCommandFarm);
+        this.commandParser.register("position", this.onCommandPosition);
         this.commandParser.register("capture", this.onCommandCapture);
         this.commandParser.register("test", this.onCommandTest);
 
@@ -860,7 +866,7 @@ export class Facility{
             this.messages.broadcast(dialog.general.openFarm2);
 
             //await this.setupRoom();
-            this.conn.moveOnMap(BOTPOS.X, BOTPOS.Y);
+            this.resetBotPosition();
 
         }else if(args[0].toLocaleLowerCase() === "close"){
 
@@ -888,6 +894,17 @@ export class Facility{
             this.workstationOccupants.clear();
              
         }
+    };
+
+    private onCommandPosition = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (!this.commandPermission(sender, false, true)) return;
+
+        this.resetBotPosition();
+        this.messages.whisper(sender.MemberNumber, `Bot moved to intended position (${BOTPOS.X}, ${BOTPOS.Y}).`);
     };
 
     //Capture a character in room
@@ -1138,12 +1155,10 @@ export class Facility{
     };
 
     private clearStalePresenceState(playerId: number, reason: "entered" | "left"): void {
-        const player = this.router.get(playerId) as DairyPlayer | undefined;
-        if (!player) return;
-
-        const flags = player.tryGet<FlagsModule<DairyFlags>>("flags");
-        const active = flags?.get("active") === true;
         const assigned = this.playerWorkstations.get(playerId);
+        const player = this.router.get(playerId) as DairyPlayer | undefined;
+        const flags = player?.tryGet<FlagsModule<DairyFlags>>("flags");
+        const active = flags?.get("active") === true;
 
         if (!active && assigned === undefined) return;
 
@@ -1153,7 +1168,8 @@ export class Facility{
             flags.set("active", false);
         }
 
-        console.log(`Player ${player.getName()} (${playerId}) presence reset after ${reason}`);
+        const playerName = player?.getName() ?? "Unknown player";
+        console.log(`Player ${playerName} (${playerId}) presence reset after ${reason}`);
     }
 
     private setupRoom = async () => {
@@ -1171,7 +1187,7 @@ export class Facility{
 
     private setupCharacter = async () => {
 
-        this.conn.moveOnMap(BOTPOS.X, BOTPOS.Y);
+        this.resetBotPosition();
         this.conn.accountUpdate({ Nickname: "Toaster"});
         this.conn.setBotDescription(makeBio());
 
@@ -1860,10 +1876,7 @@ export class Facility{
 
             const activeSongs = song.listActiveSongs().filter((activeSong) => activeSong.kind === "song");
             for (const activeSong of activeSongs) {
-                const radius = Math.min(activeSong.stackLevel, 3);
-                if (radius <= 0) continue;
-
-                for (const targetStationId of this.getNeighborWorkstations(sourceStationId, radius)) {
+                for (const targetStationId of this.getAdjacentWorkstations(sourceStationId)) {
                     const targetPlayerId = this.workstationOccupants.get(targetStationId);
                     if (targetPlayerId === undefined) continue;
                     this.applyMoonstrelAuraToPlayer(targetPlayerId, sourcePlayerId, activeSong, preservedAuraUses);
@@ -1903,14 +1916,34 @@ export class Facility{
         const sourceStationId = this.playerWorkstations.get(sourcePlayerId);
         if (sourceStationId === undefined) return;
 
-        const auraRange = Math.min(payload.stackLevel ?? 1, 3);
-        const targets = this.getNeighborWorkstations(sourceStationId, auraRange)
+        const targets = this.getAdjacentWorkstations(sourceStationId)
             .map((stationId) => this.workstationOccupants.get(stationId))
             .filter((playerId): playerId is number => playerId !== undefined && playerId !== sourcePlayerId);
 
         for (const targetPlayerId of _.uniq(targets)) {
             this.messages.whisper(targetPlayerId, baseText);
         }
+    }
+
+    private rewardActivatedMoonstrelSong(payload: {
+        playerId?: number;
+        kind?: "song" | "melody";
+    }): void {
+        if (payload.kind !== "song" || payload.playerId == null) return;
+
+        const sourcePlayer = this.router.get(payload.playerId) as DairyPlayer | undefined;
+        const economy = sourcePlayer?.tryGet<EconomyModule>("economy");
+        if (!sourcePlayer || !economy) return;
+
+        const affectedStations = this.getOccupiedAdjacentStationCount(payload.playerId);
+        if (affectedStations <= 0) return;
+
+        const bonus = affectedStations * this.moonstrelAuraMoneyPerStation;
+        economy.add(bonus);
+        this.messages.whisper(
+            payload.playerId,
+            `(Your song reaches ${affectedStations} occupied adjacent station(s), earning you ${bonus} ACs.)`,
+        );
     }
 
     private clearMoonstrelAuraModifiersForPlayer(player: DairyPlayer): void {
@@ -1982,6 +2015,19 @@ export class Facility{
             });
     }
 
+    private getAdjacentWorkstations(originId: number): number[] {
+        return this.getNeighborWorkstations(originId, 1);
+    }
+
+    private getOccupiedAdjacentStationCount(playerId: number): number {
+        const sourceStationId = this.playerWorkstations.get(playerId);
+        if (sourceStationId === undefined) return 0;
+
+        return this.getAdjacentWorkstations(sourceStationId)
+            .filter((stationId) => this.workstationOccupants.has(stationId))
+            .length;
+    }
+
     private getWorkstationGridPosition(workstationId: number): { col: number; row: number } | null {
         const station = workStations[workstationId];
         if (!station) return null;
@@ -2003,29 +2049,29 @@ export class Facility{
     }
 
     private scaleAuraSkillModifier(modifier: AnyModifier, level: number): AnyModifier {
+        const extraStacks = Math.max(0, Math.min(3, level) - 1);
         return {
             ...modifier,
-            rewardMultiplier: modifier.rewardMultiplier != null ? this.multiplierFromSongLevel(modifier.rewardMultiplier, level) : undefined,
-            energyCostMultiplier: modifier.energyCostMultiplier != null ? Math.max(0.1, this.multiplierFromSongLevel(modifier.energyCostMultiplier, level)) : undefined,
+            rewardMultiplier: modifier.rewardMultiplier != null
+                ? Number((modifier.rewardMultiplier + (0.04 * extraStacks)).toFixed(3))
+                : undefined,
+            energyCostMultiplier: modifier.energyCostMultiplier != null
+                ? Number(Math.max(0.85, modifier.energyCostMultiplier - (0.03 * extraStacks)).toFixed(3))
+                : undefined,
         };
     }
 
     private scaleAuraQualityModifier(modifier: QualityModifier, level: number): QualityModifier {
+        const extraStacks = Math.max(0, Math.min(3, level) - 1);
         return {
             ...modifier,
             add: modifier.add != null ? modifier.add * level : undefined,
-            mult: modifier.mult != null ? this.multiplierFromSongLevel(modifier.mult, level) : undefined,
+            mult: modifier.mult != null ? Number(Math.min(1.3, modifier.mult + (0.04 * extraStacks)).toFixed(3)) : undefined,
             successAdd: modifier.successAdd != null ? modifier.successAdd * level : undefined,
             failAdd: modifier.failAdd != null ? modifier.failAdd * level : undefined,
-            successMult: modifier.successMult != null ? this.multiplierFromSongLevel(modifier.successMult, level) : undefined,
-            failMult: modifier.failMult != null ? this.multiplierFromSongLevel(modifier.failMult, level) : undefined,
+            successMult: modifier.successMult != null ? Number(Math.min(1.3, modifier.successMult + (0.04 * extraStacks)).toFixed(3)) : undefined,
+            failMult: modifier.failMult != null ? Number(Math.min(1.3, modifier.failMult + (0.04 * extraStacks)).toFixed(3)) : undefined,
         };
-    }
-
-    private multiplierFromSongLevel(base: number, level: number): number {
-        if (level <= 1) return base;
-        const delta = base - 1;
-        return Number((1 + delta * level).toFixed(3));
     }
 
     private renderSongRecipe(recipe: SongRecipe): string {
@@ -2061,7 +2107,7 @@ export class Facility{
         if (!activeSongs.length) return "- none";
 
         return activeSongs
-            .map((activeSong) => `- ${activeSong.name} <${activeSong.variant ?? "base"}> [${activeSong.remainingShifts} shifts] [range ${Math.min(activeSong.stackLevel, 3)}]`)
+            .map((activeSong) => `- ${activeSong.name} <${activeSong.variant ?? "base"}> [${activeSong.remainingShifts} shifts] [adjacent stations only]`)
             .join("\n");
     }
 
@@ -2240,6 +2286,10 @@ export class Facility{
         };
         decay(this.statDeltas);
         decay(this.skillMods);
+    }
+
+    private resetBotPosition(): void {
+        this.conn.moveOnMap(BOTPOS.X, BOTPOS.Y);
     }
 
     //#endregion

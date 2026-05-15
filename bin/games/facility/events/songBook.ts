@@ -61,24 +61,24 @@ export const songBook: SongRecipe[] = [
     scope: "self",
     variants: {
       S: {
-        summary: "A simple reflective melody that adds +5 score per melody level each shift while active.",
+        summary: "A simple reflective melody that adds +4 score per melody level each shift while active.",
         durationShifts: 2,
-        shiftScorePerLevel: 5,
+        shiftScorePerLevel: 4,
       },
       L: {
-        summary: "A refined reflective melody that adds +5 score per melody level each shift and reduces energy costs by 15% while active.",
+        summary: "A refined reflective melody that adds +4 score per melody level each shift and reduces energy costs by 8% while active.",
         durationShifts: 2,
-        shiftScorePerLevel: 5,
+        shiftScorePerLevel: 4,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.85 } },
+          { modifier: { energyCostMultiplier: 0.92 } },
         ],
       },
       XL: {
-        summary: "A masterwork reflective melody that adds +5 score per melody level each shift and reduces energy costs by 20% while active.",
+        summary: "A masterwork reflective melody that adds +5 score per melody level each shift and reduces energy costs by 12% while active.",
         durationShifts: 3,
         shiftScorePerLevel: 5,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.8 } },
+          { modifier: { energyCostMultiplier: 0.88 } },
         ],
       },
     },
@@ -91,24 +91,24 @@ export const songBook: SongRecipe[] = [
     scope: "self",
     variants: {
       S: {
-        summary: "A calm ward melody that restores +10 energy per melody level each shift while active.",
+        summary: "A calm ward melody that restores +8 energy per melody level each shift while active.",
         durationShifts: 2,
-        shiftEnergyPerLevel: 10,
+        shiftEnergyPerLevel: 8,
       },
       L: {
-        summary: "A steadier ward melody that restores +10 energy per melody level each shift and improves quality generation by 25% while active.",
+        summary: "A steadier ward melody that restores +8 energy per melody level each shift and improves quality generation by 15% while active.",
         durationShifts: 2,
-        shiftEnergyPerLevel: 10,
+        shiftEnergyPerLevel: 8,
         qualityModifiers: [
-          { modifier: { successMult: 1.25 }, remainingShifts: 2 },
+          { modifier: { successMult: 1.15 }, remainingShifts: 2 },
         ],
       },
       XL: {
-        summary: "A crystalline ward melody that restores +10 energy per melody level each shift and improves quality generation by 30% while active.",
+        summary: "A crystalline ward melody that restores +10 energy per melody level each shift and improves quality generation by 20% while active.",
         durationShifts: 3,
         shiftEnergyPerLevel: 10,
         qualityModifiers: [
-          { modifier: { successMult: 1.3 }, remainingShifts: 3 },
+          { modifier: { successMult: 1.2 }, remainingShifts: 3 },
         ],
       },
     },
@@ -128,19 +128,19 @@ export const songBook: SongRecipe[] = [
         ],
       },
       L: {
-        summary: "A brighter renewal melody that increases bull charge generation by 20% and grants 75 extra XP each shift while active.",
+        summary: "A brighter renewal melody that increases bull charge generation by 15% and grants 50 extra XP each shift while active.",
         durationShifts: 2,
-        shiftXpBonus: 75,
+        shiftXpBonus: 50,
         bullModifiers: [
-          { modifier: { chargeMultiplier: 1.2 }, remainingShifts: 2 },
+          { modifier: { chargeMultiplier: 1.15 }, remainingShifts: 2 },
         ],
       },
       XL: {
-        summary: "An incandescent renewal melody that increases bull charge generation by 25% and grants 100 extra XP each shift while active.",
+        summary: "An incandescent renewal melody that increases bull charge generation by 20% and grants 75 extra XP each shift while active.",
         durationShifts: 3,
-        shiftXpBonus: 100,
+        shiftXpBonus: 75,
         bullModifiers: [
-          { modifier: { chargeMultiplier: 1.25 }, remainingShifts: 3 },
+          { modifier: { chargeMultiplier: 1.2 }, remainingShifts: 3 },
         ],
       },
     },
@@ -150,15 +150,15 @@ export const songBook: SongRecipe[] = [
     name: "Mirror Etude Fugue",
     kind: "melody",
     pattern: ["self", "self", "drive"],
-    notePattern: ["purple", "white", "red"],
+    notePattern: ["purple", "purple", "red"],
     scope: "self",
     variants: {
       L: {
-        summary: "A longer mirror refrain that adds +10 score per melody level each shift and reduces energy costs by 20% while active.",
+        summary: "A longer mirror refrain that adds +7 score per melody level each shift and reduces energy costs by 15% while active.",
         durationShifts: 3,
-        shiftScorePerLevel: 10,
+        shiftScorePerLevel: 7,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.8 } },
+          { modifier: { energyCostMultiplier: 0.85 } },
         ],
       },
     },
@@ -168,15 +168,15 @@ export const songBook: SongRecipe[] = [
     name: "Stillwater Reservoir",
     kind: "melody",
     pattern: ["guard", "self", "self"],
-    notePattern: ["lightBlue", "purple", "white"],
+    notePattern: ["lightBlue", "purple", "purple"],
     scope: "self",
     variants: {
       L: {
-        summary: "A deeper ward refrain that restores +15 energy per melody level each shift and improves quality generation by 35% while active.",
+        summary: "A deeper ward refrain that restores +12 energy per melody level each shift and improves quality generation by 22% while active.",
         durationShifts: 3,
-        shiftEnergyPerLevel: 15,
+        shiftEnergyPerLevel: 12,
         qualityModifiers: [
-          { modifier: { successMult: 1.35 }, remainingShifts: 3 },
+          { modifier: { successMult: 1.22 }, remainingShifts: 3 },
         ],
       },
     },
@@ -186,15 +186,15 @@ export const songBook: SongRecipe[] = [
     name: "Ember Crescence",
     kind: "melody",
     pattern: ["restore", "drive", "drive"],
-    notePattern: ["green", "orange", "red"],
+    notePattern: ["green", "orange", "orange"],
     scope: "self",
     variants: {
       XL: {
-        summary: "A hotter renewal refrain that increases bull charge generation by 30% and grants 125 extra XP each shift while active.",
+        summary: "A hotter renewal refrain that increases bull charge generation by 22% and grants 90 extra XP each shift while active.",
         durationShifts: 3,
-        shiftXpBonus: 125,
+        shiftXpBonus: 90,
         bullModifiers: [
-          { modifier: { chargeMultiplier: 1.3 }, remainingShifts: 3 },
+          { modifier: { chargeMultiplier: 1.22 }, remainingShifts: 3 },
         ],
       },
     },
@@ -207,24 +207,24 @@ export const songBook: SongRecipe[] = [
     scope: "others",
     variants: {
       S: {
-        summary: "A supportive chorus that raises neighboring stations' rewards by 15% while active.",
+        summary: "A supportive chorus that raises neighboring stations' rewards by 12% while active.",
         durationShifts: 2,
         skillModifiers: [
-          { modifier: { rewardMultiplier: 1.15 } },
+          { modifier: { rewardMultiplier: 1.12 } },
         ],
       },
       L: {
-        summary: "A stronger chorus that raises neighboring stations' rewards by 25% while active.",
+        summary: "A stronger chorus that raises neighboring stations' rewards by 18% while active.",
         durationShifts: 2,
         skillModifiers: [
-          { modifier: { rewardMultiplier: 1.25 } },
+          { modifier: { rewardMultiplier: 1.18 } },
         ],
       },
       XL: {
-        summary: "A broad chorus that raises neighboring stations' rewards by 35% while active.",
+        summary: "A broad chorus that raises neighboring stations' rewards by 24% while active.",
         durationShifts: 3,
         skillModifiers: [
-          { modifier: { rewardMultiplier: 1.35 } },
+          { modifier: { rewardMultiplier: 1.24 } },
         ],
       },
     },
@@ -237,24 +237,24 @@ export const songBook: SongRecipe[] = [
     scope: "others",
     variants: {
       S: {
-        summary: "A careful hymn that improves neighboring stations' quality generation by 15% while active.",
+        summary: "A careful hymn that improves neighboring stations' quality generation by 12% while active.",
         durationShifts: 2,
         qualityModifiers: [
-          { modifier: { successMult: 1.15 }, remainingShifts: 2 },
+          { modifier: { successMult: 1.12 }, remainingShifts: 2 },
         ],
       },
       L: {
-        summary: "A firmer hymn that improves neighboring stations' quality generation by 25% while active.",
+        summary: "A firmer hymn that improves neighboring stations' quality generation by 18% while active.",
         durationShifts: 2,
         qualityModifiers: [
-          { modifier: { successMult: 1.25 }, remainingShifts: 2 },
+          { modifier: { successMult: 1.18 }, remainingShifts: 2 },
         ],
       },
       XL: {
-        summary: "A bright hymn that improves neighboring stations' quality generation by 30% while active.",
+        summary: "A bright hymn that improves neighboring stations' quality generation by 22% while active.",
         durationShifts: 3,
         qualityModifiers: [
-          { modifier: { successMult: 1.3 }, remainingShifts: 3 },
+          { modifier: { successMult: 1.22 }, remainingShifts: 3 },
         ],
       },
     },
@@ -267,24 +267,24 @@ export const songBook: SongRecipe[] = [
     scope: "others",
     variants: {
       S: {
-        summary: "A practical cadence that reduces neighboring stations' energy costs by 10% while active.",
+        summary: "A practical cadence that reduces neighboring stations' energy costs by 7% while active.",
         durationShifts: 2,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.9 } },
+          { modifier: { energyCostMultiplier: 0.93 } },
         ],
       },
       L: {
-        summary: "A softer cadence that reduces neighboring stations' energy costs by 15% and raises rewards by 15% while active.",
+        summary: "A softer cadence that reduces neighboring stations' energy costs by 10% and raises rewards by 10% while active.",
         durationShifts: 2,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.85, rewardMultiplier: 1.15 } },
+          { modifier: { energyCostMultiplier: 0.9, rewardMultiplier: 1.1 } },
         ],
       },
       XL: {
-        summary: "A graceful cadence that reduces neighboring stations' energy costs by 20% and raises rewards by 20% while active.",
+        summary: "A graceful cadence that reduces neighboring stations' energy costs by 12% and raises rewards by 15% while active.",
         durationShifts: 3,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.8, rewardMultiplier: 1.2 } },
+          { modifier: { energyCostMultiplier: 0.88, rewardMultiplier: 1.15 } },
         ],
       },
     },
@@ -294,14 +294,14 @@ export const songBook: SongRecipe[] = [
     name: "Grand Rally",
     kind: "song",
     pattern: ["drive", "self", "guard", "drive"],
-    notePattern: ["orange", "purple", "lightBlue", "red"],
+    notePattern: ["orange", "purple", "lightBlue", "orange"],
     scope: "others",
     variants: {
       L: {
-        summary: "A drilled rally that sharply boosts neighboring stations' rewards and trims their energy costs while active.",
+        summary: "A drilled rally that raises neighboring stations' rewards by 22% and reduces their energy costs by 10% while active.",
         durationShifts: 3,
         skillModifiers: [
-          { modifier: { rewardMultiplier: 1.45, energyCostMultiplier: 0.85 } },
+          { modifier: { rewardMultiplier: 1.22, energyCostMultiplier: 0.9 } },
         ],
       },
     },
@@ -325,17 +325,17 @@ export const songBook: SongRecipe[] = [
     name: "Sanctuary Procession",
     kind: "song",
     pattern: ["guard", "restore", "self", "self"],
-    notePattern: ["lightBlue", "green", "purple", "white"],
+    notePattern: ["lightBlue", "green", "purple", "purple"],
     scope: "others",
     variants: {
       L: {
-        summary: "A longer procession that strongly improves neighboring stations' quality generation and lowers their energy costs while active.",
+        summary: "A longer procession that improves neighboring stations' quality generation by 20% and lowers their energy costs by 10% while active.",
         durationShifts: 3,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.85 } },
+          { modifier: { energyCostMultiplier: 0.9 } },
         ],
         qualityModifiers: [
-          { modifier: { successMult: 1.4 }, remainingShifts: 3 },
+          { modifier: { successMult: 1.2 }, remainingShifts: 3 },
         ],
       },
     },
@@ -345,17 +345,17 @@ export const songBook: SongRecipe[] = [
     name: "Easing Cadence",
     kind: "song",
     pattern: ["restore", "drive", "self", "drive"],
-    notePattern: ["green", "orange", "purple", "red"],
+    notePattern: ["green", "orange", "purple", "orange"],
     scope: "others",
     variants: {
       L: {
-        summary: "A woven cadence that gives neighboring stations lighter energy costs, better rewards, and steadier quality generation while active.",
+        summary: "A woven cadence that reduces neighboring stations' energy costs by 12%, raises rewards by 15%, and improves quality generation by 12% while active.",
         durationShifts: 3,
         skillModifiers: [
-          { modifier: { energyCostMultiplier: 0.75, rewardMultiplier: 1.25 } },
+          { modifier: { energyCostMultiplier: 0.88, rewardMultiplier: 1.15 } },
         ],
         qualityModifiers: [
-          { modifier: { successMult: 1.15 }, remainingShifts: 3 },
+          { modifier: { successMult: 1.12 }, remainingShifts: 3 },
         ],
       },
     },

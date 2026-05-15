@@ -49,7 +49,7 @@ ${normalPlayerCommandGuideLines.join("\n")}
 -Your performance keeps the last 5 notes played which can play melodies or songs (from longest pattern to shortest)
 -Melodies activate their effects automatically once the pattern is played, songs are stored into a buffer, to play the first song in the buffer, use the skill Sing.
 -Playing the same active song again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
--Active songs project their buffs to neighboring occupied workstations instead of the singer, and song range equals song level up to 3
+-Active songs project their buffs only to occupied adjacent workstations instead of the singer, and the singer earns 50 ACs per occupied adjacent station affected
 -Playing the same active melody again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
 -Song buffer size starts at 2, grows to 3 at class level 50, and to 4 at class level 100
 -Melody slots start at 1 and grow to 2 at class level 50

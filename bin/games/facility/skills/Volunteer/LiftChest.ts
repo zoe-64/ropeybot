@@ -49,8 +49,8 @@ export class LiftChest implements Skill {
     }
 
     use(player: PlayerCore): SkillResult {
-        const baseIncrease = 8;
-        const levelMultiplier = 1 + (0.1 * this.skillLevel);
+        const baseIncrease = 9;
+        const levelMultiplier = 1 + (0.08 * this.skillLevel);
         const scoreIncrease = baseIncrease * levelMultiplier;
 
         const name = player.identity.nickname ?? player.identity.name;
@@ -65,4 +65,3 @@ export class LiftChest implements Skill {
         return Math.max(1, Math.floor((classing.state.maxEnergy ?? 0) / 2));
     }
 }
-
