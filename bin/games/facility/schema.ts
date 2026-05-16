@@ -3,6 +3,7 @@ export const FacilitySchema : GameSchema =
 { 
     required: ["classing", 
                "skills", 
+               "modifiers",
                "economy", 
                "scoring",
                "flags",

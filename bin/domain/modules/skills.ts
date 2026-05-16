@@ -7,12 +7,11 @@ export function createSkillsModule(): SkillsModule {
   let player: PlayerCore | undefined;
   return {
     key: "skills",
-    state: { skills: [], activeModifiers: [] },
+    state: { skills: [] },
     onAttach(p) { player = p; },
     add(skill) { this.state.skills.push(skill); this.state.skills.sort((a,b) => b.priority - a.priority); },
     list() { return this.state.skills; },
     resetAll() { for (const s of this.state.skills) s.reset?.(); },
-    applyModifiers(mods) { this.state.activeModifiers = mods; },
     printSkillsInfo() {
       let aux = `(Your current skills are:\n`;
       const classing = player?.tryGet<any>("classing");

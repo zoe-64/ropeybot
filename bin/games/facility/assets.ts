@@ -252,7 +252,7 @@ export let highSteelAnkleCuffs: BC_AppearanceItem = {
 export let shinyArmBinder: BC_AppearanceItem = {
     Name: "ShinyArmbinder",
     Group: "ItemArms",
-    Color: ['Default', 'Default', 'Default', 'Default'],
+    Color: ['#FFFFFF', '#000000', '#FFFFFF', 'Default'],
     Difficulty: 80,
     Property: {TypeRecord: {typed: 3}},
     Craft: {
@@ -275,7 +275,7 @@ export let shinyArmBinder: BC_AppearanceItem = {
 export let latexRespirator: BC_AppearanceItem = {
     Name: "LatexRespirator",
     Group: "ItemMouth3",
-    Color: undefined,
+    Color: ['Default','Default','Default','Default','Default','#FB09BD'],
     Difficulty: 80,
     Property: {TypeRecord:{
             "f": 2,

@@ -11,6 +11,7 @@ import type { DomainEventBus } from "../../domain/ports/DomainEvenPort";
 import { asGamePlayer, ensureModules, PlayerFor } from "../../domain/core/game-schema";
 import { FacilitySchema } from "./schema";
 import { createFlagsModule } from "../../domain/modules/flags";
+import { createModifierModule } from "../../domain/modules/modifiers";
 import { FacilityConfig } from "./config";
 import { createSkillLogModule } from "../../domain/modules/skillLog";
 import { createSongModule } from "../../domain/modules/song";
@@ -72,6 +73,7 @@ export function buildDairyPlayer(identity: PlayerIdentity, deps: BuildPlayerDeps
 
   // Attach required modules per schema
   core.attach(createSkillsModule());
+  core.attach(createModifierModule());
   core.attach(createSongModule(songBook, songNotes));
   core.attach(createQualityModule());
   core.attach(createBullModule());

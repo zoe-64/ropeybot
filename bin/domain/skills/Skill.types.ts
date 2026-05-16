@@ -67,13 +67,11 @@ export type AnyModifier = BaseModifier & Partial<RewardModifier & EnergyModifier
 // 4) Use AnyModifier in state/api
 export interface SkillsState {
   skills: Skill[];
-  activeModifiers: AnyModifier[];
 }
 
 export interface SkillsApi {
   list(): ReadonlyArray<Skill>;
   add(skill: Skill): void;
   resetAll(): void;
-  applyModifiers(mods: AnyModifier[]): void; // <- update
   printSkillsInfo(): string;
 }

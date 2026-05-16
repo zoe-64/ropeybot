@@ -1,5 +1,6 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
 import { BullState, BullModifier } from "../moduleTypes/Bull.types";
+import { ModifierModule } from "./modifiers";
 
 export type BullModule = PlayerModule & {
   key: "bull";
@@ -12,6 +13,7 @@ export type BullModule = PlayerModule & {
   applyModifier(mod: BullModifier): void;
   tickShift(): void;
   getState(): BullState;
+  getEnergyCap(): number;
 };
 
 export function createBullModule(): BullModule {
@@ -27,16 +29,17 @@ export function createBullModule(): BullModule {
   };
 
   const modifiers: BullModifier[] = [];
+  const getModifierModule = () => player?.tryGet<ModifierModule>("modifiers");
 
   function energyCap() {
-    return state.threshold + modifiers.reduce((acc, m) => acc + (m.energyMaxBonus ?? 0), 0);
+    return getModifierModule()?.resolveNumber("bull.cap", state.threshold, { playerId: player?.identity.id ?? -1 }) ?? state.threshold;
   }
 
   function addCharge(amount: number): { progressed: number; becameReady: boolean } {
     if (state.cooldownShifts && state.cooldownShifts > 0) return { progressed: 0, becameReady: false };
     if (state.ready) return { progressed: 0, becameReady: false };
-    const mult = modifiers.reduce((acc, m) => acc * (m.chargeMultiplier ?? 1), 1);
-    const delta = Math.max(0, Math.floor(amount * mult));
+    const mult = getModifierModule()?.resolveNumber("bull.charge", amount, { playerId: player?.identity.id ?? -1 }) ?? amount;
+    const delta = Math.max(0, Math.floor(mult));
     if (delta === 0) return { progressed: 0, becameReady: false };
     const prevEnergy = state.energy;
     state.energy = Math.min(energyCap(), state.energy + delta);
@@ -49,8 +52,7 @@ export function createBullModule(): BullModule {
   }
 
   function fail(): { fromReady: boolean; progressed: number } {
-    const stepMult = modifiers.reduce((acc, m) => acc * (m.stepMultiplier ?? 1), 1);
-    const step = Math.max(1, Math.floor(state.step * stepMult));
+    const step = Math.max(1, Math.floor(getModifierModule()?.resolveNumber("bull.step", state.step, { playerId: player?.identity.id ?? -1 }) ?? state.step));
     const prevEnergy = state.energy;
     let fromReady = false;
     if (state.ready) {
@@ -91,22 +93,6 @@ export function createBullModule(): BullModule {
     return { consumed: true };
   }
 
-  function applyModifier(mod: BullModifier) {
-    modifiers.push(mod);
-  }
-
-  function tickShift() {
-    if (state.cooldownShifts && state.cooldownShifts > 0) state.cooldownShifts -= 1;
-    for (const m of modifiers) {
-      if (m.remainingShifts != null) m.remainingShifts -= 1;
-    }
-    for (let i = modifiers.length - 1; i >= 0; i--) {
-      if (modifiers[i].remainingShifts != null && modifiers[i].remainingShifts <= 0) {
-        modifiers.splice(i, 1);
-      }
-    }
-  }
-
   const mod: BullModule = {
     key: "bull",
     state,
@@ -116,10 +102,17 @@ export function createBullModule(): BullModule {
     removeCharge,
     fail,
     consume,
-    applyModifier,
-    tickShift,
+    applyModifier() {
+      // Bull modifiers are centralized in the shared modifier module.
+    },
+    tickShift() {
+      if (state.cooldownShifts && state.cooldownShifts > 0) state.cooldownShifts -= 1;
+    },
     getState() {
       return { ...state };
+    },
+    getEnergyCap() {
+      return energyCap();
     },
   };
 

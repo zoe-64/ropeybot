@@ -181,7 +181,7 @@ export class BullEngine {
   }
 
   private energyCap(bull: BullModule): number {
-    return bull.state.threshold + bull.modifiers.reduce((acc, m) => acc + (m.energyMaxBonus ?? 0), 0);
+    return bull.getEnergyCap();
   }
 
   private publishProgress(playerId: number, bull: BullModule, logPayload?: Record<string, unknown>) {

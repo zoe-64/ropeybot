@@ -1,25 +1,25 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
 import { DomainEvent } from "../ports/DomainEvenPort";
+import { ModifierModule } from "./modifiers";
 
 export type OutcomeChances = { positive: number; negative: number };
 
 export type QualityModifier = {
-  add?: number;               // flat add to quality score before clamping (used for effective score)
-  mult?: number;              // multiplier to quality score (used for effective score)
-  successAdd?: number;        // flat add applied to success deltas only
-  failAdd?: number;           // flat add applied to fail deltas only
-  successMult?: number;       // multiplier applied to success deltas only
-  failMult?: number;          // multiplier applied to fail deltas only
-  clampMin?: number;          // optional lower bound after modifiers
-  clampMax?: number;          // optional upper bound after modifiers
-  remainingShifts?: number;   // shift-based expiry
-  sourceId?: string;          // origin identifier for removal (e.g., global event id)
+  add?: number;
+  mult?: number;
+  successAdd?: number;
+  failAdd?: number;
+  successMult?: number;
+  failMult?: number;
+  clampMin?: number;
+  clampMax?: number;
+  remainingShifts?: number;
+  sourceId?: string;
 };
 
 export type QualityModule = PlayerModule & {
   key: "quality";
   state: { qualityScore: number };
-  modifiers: QualityModifier[];
   getQualityScore(): number;
   getNormalizedQuality(): number;
   getQuality(): number;
@@ -30,9 +30,8 @@ export type QualityModule = PlayerModule & {
   resetQuality(value?: number): void;
   qualityScoreToOutcomeSmooth(): OutcomeChances;
   triggerRandomOutcome(): "positive" | "negative" | "none";
-  applyModifier(mod: QualityModifier): void;
   tickShift(): void;
-  applyProductionDecay(shiftProduction: number): number; // returns applied decay
+  applyProductionDecay(shiftProduction: number): number;
 };
 
 export function createQualityModule(initialQuality = 50): QualityModule {
@@ -40,18 +39,9 @@ export function createQualityModule(initialQuality = 50): QualityModule {
   const unsubscribers: Array<() => void> = [];
 
   const state = { qualityScore: Math.max(0, initialQuality) };
-  const modifiers: QualityModifier[] = [];
 
-  const getEffectiveScore = () => {
-    const add = modifiers.reduce((acc, m) => acc + (m.add ?? 0), 0);
-    const mult = modifiers.reduce((acc, m) => acc * (m.mult ?? 1), 1);
-    const clampMin = Math.max(0, Math.max(...modifiers.map(m => m.clampMin ?? 0), 0));
-    const clampMaxRaw = modifiers.map(m => m.clampMax).filter((v): v is number => v != null);
-    const clampMax = clampMaxRaw.length ? Math.min(...clampMaxRaw) : Number.POSITIVE_INFINITY;
-
-    const raw = (state.qualityScore + add) * mult;
-    return Math.min(clampMax, Math.max(clampMin, raw));
-  };
+  const getModifiers = () => player?.tryGet<ModifierModule>("modifiers");
+  const getEffectiveScore = () => getModifiers()?.resolveNumber("quality.score", state.qualityScore, { playerId: player?.identity.id ?? -1 }) ?? state.qualityScore;
 
   const logQualityChange = (delta: number, newValue: number, reason?: string) => {
     const name = player?.identity.nickname ?? player?.identity.name ?? "<unknown>";
@@ -62,31 +52,22 @@ export function createQualityModule(initialQuality = 50): QualityModule {
   const mod: QualityModule = {
     key: "quality",
     state,
-    modifiers,
     onAttach(p) {
       player = p;
       const bus = player.ctx.bus;
       unsubscribers.push(bus.subscribe("player:skill.used", (evt: DomainEvent) => {
         if (!player) return;
-        const payload = evt.payload as { playerId: number; success?: boolean };
+        const payload = evt.payload as { playerId: number; success?: boolean; skillName?: string };
         if (payload?.playerId !== player.identity.id) return;
         const baseDelta = payload.success === false ? -5 : 5;
-        const mult = modifiers.reduce((acc, m) => {
-          const mval = baseDelta >= 0
-            ? (m.successMult ?? m.mult ?? 1)
-            : (m.failMult ?? m.mult ?? 1);
-          return acc * mval;
-        }, 1);
-        const add = modifiers.reduce((acc, m) => {
-          const aval = baseDelta >= 0
-            ? (m.successAdd ?? m.add ?? 0)
-            : (m.failAdd ?? m.add ?? 0);
-          return acc + aval;
-        }, 0);
-        const scaled = Math.round(baseDelta * mult + add);
+        const scaled = getModifiers()?.resolveNumber("quality.delta", baseDelta, {
+          playerId: player.identity.id,
+          actionType: "skillUse",
+          skillName: payload.skillName,
+          success: payload.success ?? true,
+        }) ?? baseDelta;
         mod.adjustQuality(scaled);
       }));
-
 
       unsubscribers.push(bus.subscribe("player:climax.orgasm", (evt: DomainEvent) => {
         if (!player) return;
@@ -100,77 +81,47 @@ export function createQualityModule(initialQuality = 50): QualityModule {
         }
       }));
 
-
       unsubscribers.push(bus.subscribe("player:climax.resist", (evt: DomainEvent) => {
         if (!player) return;
         const payload = evt.payload as { playerId?: number };
         if (payload?.playerId !== player.identity.id) return;
         mod.adjustQuality(5);
       }));
-
-
-      unsubscribers.push(bus.subscribe("quality:modifier", (evt: DomainEvent) => {
-        if (!player) return;
-        const payload = evt.payload as { playerId?: number | "*"; modifier: QualityModifier; action: "add" | "remove" | "extend"; shifts?: number };
-        if (payload.playerId !== "*" && payload.playerId !== player.identity.id) return;
-        if (payload.action === "add") {
-          modifiers.push({ ...payload.modifier });
-        } else if (payload.action === "extend" && payload.modifier.sourceId) {
-          for (const modifier of modifiers) {
-            if (modifier.sourceId === payload.modifier.sourceId) {
-              modifier.remainingShifts = (modifier.remainingShifts ?? 0) + (payload.shifts ?? 1);
-            }
-          }
-        } else if (payload.modifier.sourceId) {
-          for (let i = modifiers.length - 1; i >= 0; i--) {
-            if (modifiers[i].sourceId === payload.modifier.sourceId) modifiers.splice(i, 1);
-          }
-        }
-      }));
     },
     onDetach() {
       while (unsubscribers.length) {
-        const u = unsubscribers.pop();
-        try { u?.(); } catch { /* ignore */ }
+        const unsubscribe = unsubscribers.pop();
+        try { unsubscribe?.(); } catch { /* ignore */ }
       }
     },
-    
     getQualityScore() { return getEffectiveScore(); },
-    
     getNormalizedQuality() { return Math.round(getEffectiveScore()); },
-    
     getQuality() { return getEffectiveScore() / 100; },
-    
     setQualityScore(value: number) {
       const newScore = Math.max(0, value);
       const delta = newScore - state.qualityScore;
       state.qualityScore = newScore;
       logQualityChange(delta, state.qualityScore, "setQualityScore");
     },
-    
     reduceQualityByHalf() {
       const newScore = Math.max(0, state.qualityScore / 2);
       const delta = newScore - state.qualityScore;
       state.qualityScore = newScore;
       logQualityChange(delta, state.qualityScore, "reduceQualityByHalf");
     },
-    
     adjustQuality(amount: number) {
       const newScore = Math.max(0, state.qualityScore + amount);
       const delta = newScore - state.qualityScore;
       state.qualityScore = newScore;
       logQualityChange(delta, state.qualityScore, "adjustQuality");
     },
-    
     isQualityAbove(threshold: number) { return getEffectiveScore() > threshold; },
-    
     resetQuality(value: number = 100) {
       const newScore = Math.max(0, value);
       const delta = newScore - state.qualityScore;
       state.qualityScore = newScore;
       logQualityChange(delta, state.qualityScore, "resetQuality");
     },
-    
     qualityScoreToOutcomeSmooth(): OutcomeChances {
       const effective = getEffectiveScore();
       const steepness = 0.05;
@@ -189,21 +140,11 @@ export function createQualityModule(initialQuality = 50): QualityModule {
       if (roll < posNorm + negNorm) return "negative";
       return "none";
     },
-    applyModifier(m: QualityModifier) { modifiers.push(m); },
     tickShift() {
-      for (const m of modifiers) {
-        if (m.remainingShifts != null) m.remainingShifts -= 1;
-      }
-      for (let i = modifiers.length - 1; i >= 0; i--) {
-        if (modifiers[i].remainingShifts != null && modifiers[i].remainingShifts <= 0) {
-          modifiers.splice(i, 1);
-        }
-      }
+      // Shift-based quality modifiers are aged by the shared modifier module.
     },
     applyProductionDecay(shiftProduction: number) {
       const prod = Math.max(0, shiftProduction);
-      // Decay scales from 5 (minimum) up to 20 as production approaches 25
-      // decay = clamp(5, 20, 5 + 15 * (prod / 25))
       const decay = Math.round(Math.min(20, Math.max(5, 5 + 15 * (prod / 25))));
       mod.adjustQuality(-decay);
       if (player) {

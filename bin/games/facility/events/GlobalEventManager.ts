@@ -1,7 +1,6 @@
 import { MessagePort } from "../../../domain/ports/MessagePort";
 import { DomainEventBus } from "../../../domain/ports/DomainEvenPort";
 import { GlobalEventDef, globalEvents } from "./globalEvents";
-import { QualityModifier } from "../../../domain/modules/quality";
 
 export type ActiveGlobalEvent = GlobalEventDef & { remainingShifts: number };
 
@@ -52,10 +51,6 @@ export class GlobalEventManager {
       evt.remainingShifts -= 1;
       if (evt.remainingShifts <= 0) {
         this.removeEffects(evt);
-        this.bus.publish({
-          type: "quality:modifier",
-          payload: { playerId: "*", modifier: { sourceId: evt.id } as QualityModifier, action: "remove" }
-        });
         if (evt.onEndMessage) this.messages.broadcast(evt.onEndMessage);
       } else {
         still.push(evt);
@@ -69,18 +64,6 @@ export class GlobalEventManager {
     this.active.push(active);
     this.lastFiredEventId = def.id;
     this.applyEffects(active, playerId); // playerId can be undefined (global) or a number (personal)
-    for (const qm of def.quality ?? []) {
-      const shifts = qm.remainingShifts ?? def.durationShifts ?? 1;
-      this.bus.publish({
-        type: "quality:modifier",
-        payload: {
-          playerId: qm.playerId ?? "*",
-          modifier: { ...qm.modifier, remainingShifts: shifts, sourceId: def.id },
-          action: "add"
-        }
-      });
-    }
-
     if (def.onFireMessage) this.messages.broadcast(def.onFireMessage);
   }
 

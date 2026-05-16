@@ -1,7 +1,6 @@
 import { PlayerCore } from "../../core/PlayerCore";
 import { BullModule } from "../../modules/bull";
 import { ClassingModule } from "../../modules/classing";
-import { QualityModule } from "../../modules/quality";
 import { ScoringModule } from "../../modules/scoring";
 import { SongModule, SongNoteColor } from "../../modules/song";
 import { SkillEffect } from "../../skills/Skill.types";
@@ -196,15 +195,6 @@ export class SongEngine {
       if (charge.progressed > 0) feedback.push(`Bull charge increased by ${charge.progressed}.`);
     }
 
-    const quality = player.tryGet<QualityModule>("quality");
-    for (const entry of completedSong.qualityModifiers ?? []) {
-      if (quality) {
-        quality.applyModifier({
-          ...entry.modifier,
-          remainingShifts: entry.remainingShifts ?? completedSong.durationShifts,
-        });
-      }
-    }
   }
 }
 

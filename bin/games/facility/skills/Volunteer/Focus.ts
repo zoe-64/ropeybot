@@ -1,7 +1,8 @@
 import { PlayerCore } from "../../../../domain/core/PlayerCore";
+import { ModifierModule } from "../../../../domain/modules/modifiers";
 import { IncomingMessage } from "../../../../domain/ports/MessagePort";
-import { Skill, SkillResult, ChatMessageType, AnyModifier } from "../../../../domain/skills/Skill.types";
-import { SkillsModule } from "../../../../domain/modules/skills";
+import { Skill, SkillResult, ChatMessageType } from "../../../../domain/skills/Skill.types";
+import { fromSkillModifier } from "../../modifierHelpers";
 import { matchesAnyTriggerToken } from "../triggerMatching";
 
 export class Focus implements Skill {
@@ -42,32 +43,27 @@ export class Focus implements Skill {
     }
 
     canExecute(player: PlayerCore): boolean {
-        const skillsMod = player.tryGet<SkillsModule>("skills");
-        if (!skillsMod) return false;
-
-        const hasPendingFocus = skillsMod.state.activeModifiers.some((m) =>
-            m.usesRemaining != null &&
-            m.usesRemaining > 0 &&
-            m.rewardMultiplier != null &&
-            m.skillWhitelist?.some((skillName) => this.boostedSkills.includes(skillName))
-        );
-
-        return !hasPendingFocus;
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        if (!modifiers) return false;
+        return !modifiers.has({ sourceId: `skill:${this.skillName}` });
     }
 
     use(player: PlayerCore): SkillResult {
-        const skillsMod = player.tryGet<SkillsModule>("skills");
-        if (!skillsMod) return { energy: this.energyCost, reward: 0, success: true };
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        if (!modifiers) return { energy: this.energyCost, reward: 0, success: true };
 
         const rewardBoost = this.rewardBoostBase + (this.rewardBoostPerLevel * this.skillLevel);
         const rewardMultiplier = 1 + rewardBoost;
-        const focusModifier: AnyModifier = {
+        modifiers.addMany(fromSkillModifier({
             rewardMultiplier,
             skillWhitelist: this.boostedSkills,
             usesRemaining: 1,
-        };
-
-        skillsMod.state.activeModifiers.push(focusModifier);
+        }, {
+            id: `skill:${this.skillName}:${player.identity.id}`,
+            sourceType: "skill",
+            sourceId: `skill:${this.skillName}`,
+            ownerPlayerId: player.identity.id,
+        }));
 
         const name = player.identity.nickname ?? player.identity.name;
         console.log(`${name} primed Focus for next milk skill (+${Math.round(rewardBoost * 100)}%)`);

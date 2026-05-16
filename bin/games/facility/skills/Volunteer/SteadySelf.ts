@@ -1,8 +1,9 @@
 import { PlayerCore } from "../../../../domain/core/PlayerCore";
+import { ModifierModule } from "../../../../domain/modules/modifiers";
 import { IncomingMessage } from "../../../../domain/ports/MessagePort";
-import { Skill, SkillResult, ChatMessageType, AnyModifier } from "../../../../domain/skills/Skill.types";
-import { SkillsModule } from "../../../../domain/modules/skills";
+import { Skill, SkillResult, ChatMessageType } from "../../../../domain/skills/Skill.types";
 import { FacilityEvents } from "../../config";
+import { fromSkillModifier } from "../../modifierHelpers";
 
 export class SteadySelf implements Skill {
     skillId: number;
@@ -56,30 +57,25 @@ export class SteadySelf implements Skill {
     canExecute(player: PlayerCore): boolean {
         if (this.usesLeft <= 0) return false;
 
-        const skillsMod = player.tryGet<SkillsModule>("skills");
-        if (!skillsMod) return false;
-
-        const hasPendingSteadySelf = skillsMod.state.activeModifiers.some((m) =>
-            m.usesRemaining != null &&
-            m.usesRemaining > 0 &&
-            m.energyCostMultiplier === this.energyReductionMultiplier &&
-            m.skillWhitelist?.some((skillName) => this.boostedSkills.includes(skillName))
-        );
-
-        return !hasPendingSteadySelf;
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        if (!modifiers) return false;
+        return !modifiers.has({ sourceId: `skill:${this.skillName}` });
     }
 
     use(player: PlayerCore): SkillResult {
-        const skillsMod = player.tryGet<SkillsModule>("skills");
-        if (!skillsMod) return { energy: this.energyCost, reward: 0, success: false };
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        if (!modifiers) return { energy: this.energyCost, reward: 0, success: false };
 
-        const steadyModifier: AnyModifier = {
+        modifiers.addMany(fromSkillModifier({
             energyCostMultiplier: this.energyReductionMultiplier,
             skillWhitelist: this.boostedSkills,
             usesRemaining: 1,
-        };
-
-        skillsMod.state.activeModifiers.push(steadyModifier);
+        }, {
+            id: `skill:${this.skillName}:${player.identity.id}`,
+            sourceType: "skill",
+            sourceId: `skill:${this.skillName}`,
+            ownerPlayerId: player.identity.id,
+        }));
         this.usesLeft -= 1;
 
         const name = player.identity.nickname ?? player.identity.name;

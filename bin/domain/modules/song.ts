@@ -1,8 +1,10 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
+import { ModifierDefinition } from "../modifiers/Modifier.types";
 import { BullModifier } from "../moduleTypes/Bull.types";
+import { ModifierModule } from "../modules/modifiers";
 import { QualityModifier } from "../modules/quality";
-import { SkillsModule } from "../modules/skills";
 import { AnyModifier } from "../skills/Skill.types";
+import { fromBullModifier, fromQualityModifier, fromSkillModifier } from "../../games/facility/modifierHelpers";
 
 export type SongNoteColor = "white" | "purple" | "red" | "orange" | "green" | "lightBlue" | "gold";
 export type SongNoteFamily = "self" | "drive" | "restore" | "guard" | "crown";
@@ -148,6 +150,26 @@ function scaleQualityModifier(modifier: QualityModifier, level: number): Quality
   };
 }
 
+function createShiftBonusModifier(args: {
+  id: string;
+  sourceId: string;
+  ownerPlayerId: number;
+  target: "shift.scoreBonus" | "shift.energyBonus" | "shift.xpBonus";
+  value: number;
+  remainingShifts: number;
+}): ModifierDefinition {
+  return {
+    id: args.id,
+    sourceType: "song",
+    sourceId: args.sourceId,
+    ownerPlayerId: args.ownerPlayerId,
+    target: args.target,
+    operation: { type: "add", value: args.value },
+    duration: { type: "shifts", remaining: args.remainingShifts },
+    filters: { actionTypes: ["shiftEnd"] },
+  };
+}
+
 export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCatalog, maxNotes = 5): SongModule {
   let player: PlayerCore | undefined;
   let unsubscribe: (() => void) | undefined;
@@ -233,65 +255,93 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
   const syncActiveEffects = (preservedUses?: Map<string, number | undefined>) => {
     if (!player) return;
 
-    const skills = player.tryGet<SkillsModule>("skills");
-    if (skills) {
-      const localPreservedUses = preservedUses ?? new Map(
-        skills.state.activeModifiers
-          .filter((modifier) => modifier.sourceId?.startsWith(songSourcePrefix))
-          .map((modifier) => [modifier.sourceId as string, modifier.usesRemaining]),
-      );
-      skills.state.activeModifiers = skills.state.activeModifiers.filter((modifier) => !modifier.sourceId?.startsWith(songSourcePrefix));
-      for (const song of state.activeSongs) {
-        if (song.kind !== "melody") continue;
-        for (const [index, entry] of (song.skillModifiers ?? []).entries()) {
-          const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:${index}`;
-          skills.state.activeModifiers.push({
-            ...scaleModifier(entry.modifier, song.stackLevel),
-            usesRemaining: localPreservedUses.has(sourceId)
-              ? localPreservedUses.get(sourceId)
-              : (entry.modifier.usesRemaining ?? entry.remainingShifts),
+    const modifiers = player.tryGet<ModifierModule>("modifiers");
+    if (!modifiers) return;
+
+    const localPreservedUses = preservedUses ?? modifiers.getUsesBySource(songSourcePrefix);
+    modifiers.removeBySourcePrefix(songSourcePrefix);
+
+    for (const song of state.activeSongs) {
+      if (song.kind !== "melody") continue;
+
+      for (const [index, entry] of (song.skillModifiers ?? []).entries()) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:${index}`;
+        const usesRemaining = localPreservedUses.has(sourceId)
+          ? localPreservedUses.get(sourceId)
+          : entry.modifier.usesRemaining;
+        modifiers.addMany(fromSkillModifier({
+          ...scaleModifier(entry.modifier, song.stackLevel),
+          usesRemaining,
+        }, {
+          id: `${sourceId}:${player.identity.id}`,
+          sourceType: "song",
+          sourceId,
+          ownerPlayerId: player.identity.id,
+        }));
+      }
+
+      for (const [index, entry] of (song.qualityModifiers ?? []).entries()) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:quality:${index}`;
+        modifiers.addMany(fromQualityModifier(
+          scaleQualityModifier(entry.modifier, song.stackLevel),
+          {
+            id: `${sourceId}:${player.identity.id}`,
+            sourceType: "song",
             sourceId,
-          });
-        }
-      }
-    }
-
-    const quality = player.tryGet<any>("quality");
-    if (quality?.modifiers) {
-      quality.modifiers.splice(
-        0,
-        quality.modifiers.length,
-        ...quality.modifiers.filter((modifier: QualityModifier) => !modifier.sourceId?.startsWith(songSourcePrefix)),
-      );
-      for (const song of state.activeSongs) {
-        if (song.kind !== "melody") continue;
-        for (const [index, entry] of (song.qualityModifiers ?? []).entries()) {
-          quality.modifiers.push({
-            ...scaleQualityModifier(entry.modifier, song.stackLevel),
+            ownerPlayerId: player.identity.id,
             remainingShifts: entry.remainingShifts ?? song.remainingShifts,
-            sourceId: `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:${index}`,
-          });
-        }
+          },
+        ));
       }
-    }
 
-    const bull = player.tryGet<any>("bull");
-    if (bull?.modifiers) {
-      bull.modifiers.splice(
-        0,
-        bull.modifiers.length,
-        ...bull.modifiers.filter((modifier: (BullModifier & { sourceId?: string })) => !modifier.sourceId?.startsWith(songSourcePrefix)),
-      );
-      for (const song of state.activeSongs) {
-        if (song.kind !== "melody") continue;
-        for (const [index, entry] of (song.bullModifiers ?? []).entries()) {
-          bull.modifiers.push({
-            ...entry.modifier,
-            chargeMultiplier: entry.modifier.chargeMultiplier != null ? scaledBullMultiplier(entry.modifier.chargeMultiplier, song.stackLevel) : undefined,
-            remainingShifts: entry.remainingShifts ?? song.remainingShifts,
-            sourceId: `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:bull:${index}`,
-          });
-        }
+      for (const [index, entry] of (song.bullModifiers ?? []).entries()) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:bull:${index}`;
+        modifiers.addMany(fromBullModifier({
+          ...entry.modifier,
+          chargeMultiplier: entry.modifier.chargeMultiplier != null ? scaledBullMultiplier(entry.modifier.chargeMultiplier, song.stackLevel) : undefined,
+        }, {
+          id: `${sourceId}:${player.identity.id}`,
+          sourceType: "song",
+          sourceId,
+          ownerPlayerId: player.identity.id,
+          remainingShifts: entry.remainingShifts ?? song.remainingShifts,
+        }));
+      }
+
+      if ((song.shiftScorePerLevel ?? 0) !== 0) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:shiftScore`;
+        modifiers.add(createShiftBonusModifier({
+          id: `${sourceId}:${player.identity.id}`,
+          sourceId,
+          ownerPlayerId: player.identity.id,
+          target: "shift.scoreBonus",
+          value: (song.shiftScorePerLevel ?? 0) * song.stackLevel,
+          remainingShifts: song.remainingShifts,
+        }));
+      }
+
+      if ((song.shiftEnergyPerLevel ?? 0) !== 0) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:shiftEnergy`;
+        modifiers.add(createShiftBonusModifier({
+          id: `${sourceId}:${player.identity.id}`,
+          sourceId,
+          ownerPlayerId: player.identity.id,
+          target: "shift.energyBonus",
+          value: (song.shiftEnergyPerLevel ?? 0) * song.stackLevel,
+          remainingShifts: song.remainingShifts,
+        }));
+      }
+
+      if ((song.shiftXpBonus ?? 0) !== 0) {
+        const sourceId = `${songSourcePrefix}${song.id}:${song.variant ?? "base"}:shiftXp`;
+        modifiers.add(createShiftBonusModifier({
+          id: `${sourceId}:${player.identity.id}`,
+          sourceId,
+          ownerPlayerId: player.identity.id,
+          target: "shift.xpBonus",
+          value: song.shiftXpBonus ?? 0,
+          remainingShifts: song.remainingShifts,
+        }));
       }
     }
   };

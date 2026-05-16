@@ -31,7 +31,7 @@ import { BullEngine } from "../domain/services/facility/BullEngine";
 import { PlayerRegisterService } from "../domain/services/PlayerGameRegistrationService";
 import { PlayerFor } from "../domain/core/game-schema";
 import { FacilitySchema } from "./facility/schema";
-import { acceptedClassNames, FacilityClasses, FacilityConfig, FacilityEvents, SkillModEntry, StatDelta } from "./facility/config";
+import { acceptedClassNames, FacilityClasses, FacilityConfig, FacilityEvents, StatDelta } from "./facility/config";
 import _, { ceil } from "lodash";
 import { dialog } from "../dialog/dialog";
 // Ensure Facility skills are registered at startup (side-effect import)
@@ -39,6 +39,7 @@ import "./facility/skills/indext";
 import { SkillsModule } from "../domain/modules/skills";
 import { ClassingModule } from "../domain/modules/classing";
 import { FlagsModule } from "../domain/modules/flags";
+import { ModifierModule } from "../domain/modules/modifiers";
 import { BOTPOS, dressingStations, entryTeleportStations, getNormalPlayerCommandGuide, makeBio, MAP, regularUniform, workStations } from "./facility/assets";
 import { activateRespirator, disableRespirator, dressCharacterWithRegularUniform, dressCharacterWithStandardUniform, dressEquipmentMale, dressEquipmentRegular, dressEquipmentStandard, freeCharacter, setCharacterVibeMode, undressCharacter } from "./facility/appereanceUtils";
 import { EconomyModule } from "../domain/modules/economy";
@@ -47,9 +48,11 @@ import { QualityModifier, QualityModule } from "../domain/modules/quality";
 import { BullModule } from "../domain/modules/bull";
 import { GlobalEventManager } from "./facility/events/GlobalEventManager";
 import { GlobalEventDef } from "./facility/events/globalEvents";
+import { ModifierDefinition } from "../domain/modifiers/Modifier.types";
 import { AnyModifier } from "../domain/skills/Skill.types";
 import { songBook, songNotes } from "./facility/events/songBook";
 import { ActiveSong, SongModule, SongNoteFamily, SongRecipe } from "../domain/modules/song";
+import { fromBullModifier, fromQualityModifier, fromSkillModifier, fromStatDelta } from "./facility/modifierHelpers";
 
 /**
  * Player type definition for this game, uses the configured schema
@@ -71,8 +74,6 @@ const listOfUsedItemGroups = _.uniq(listOfUsedItems.map(i => i[0]));
 
 
 export class Facility{
-    private recoveryMods = new Map<number | "*", { multiplier?: number; bonus?: number; remainingShifts: number; sourceId?: string }[]>();
-    
     private repo: PlayerRepo;
     private bus: DomainEventBus;
     private messages: MessagePort;
@@ -111,12 +112,6 @@ export class Facility{
      */
     private farmOpen: boolean = false;
 
-    /**
-     * Shift energy recovery modifiers
-     * remainingShifts: number of shifts the modifier stays active; defaults to 1 (expires next shift)
-     */
-    private statDeltas = new Map<number | "*", StatDelta[]>();
-    private skillMods = new Map<number | "*", SkillModEntry[]>();
     private lastShiftProduction = new Map<number, number>();
     private selectedClassesThisSession = new Map<number, Set<number>>();
     private readonly moonstrelAuraSourcePrefix = "moonstrel:aura:";
@@ -130,7 +125,7 @@ export class Facility{
         this.globalEventManager = new GlobalEventManager(
             this.messages,
             this.bus,
-            (evt) => this.applyGlobalEffects(evt),
+            (evt, playerId) => this.applyGlobalEffects(evt, playerId),
             (evt, shifts) => this.extendGlobalEffects(evt, shifts),
             (evt) => this.removeGlobalEffects(evt)
         );
@@ -152,79 +147,6 @@ export class Facility{
             } catch { /* ignore malformed event */ }
         });
         
-        this.bus.subscribe(FacilityEvents.shift.adjustRecovery, (evt) => {
-            const { playerId = "*", multiplier, bonus, shifts, sourceId } = evt.payload as {
-                playerId?: number | "*";
-                multiplier?: number;
-                bonus?: number;
-                shifts?: number; // number of shifts the modifier remains active
-                sourceId?: string;
-            };
-            const remainingShifts = shifts && shifts > 0 ? shifts : 1;
-            const list = this.recoveryMods.get(playerId) ?? [];
-            list.push({ multiplier, bonus, remainingShifts, sourceId });
-            this.recoveryMods.set(playerId, list);
-        });
-
-        this.bus.subscribe(FacilityEvents.shift.extendRecovery, (evt) => {
-            const { sourceId, shifts = 1 } = evt.payload as { sourceId?: string; shifts?: number };
-            if (!sourceId || shifts <= 0) return;
-            for (const [, list] of this.recoveryMods) {
-                for (const modifier of list) {
-                    if (modifier.sourceId === sourceId) modifier.remainingShifts += shifts;
-                }
-            }
-        });
-
-        this.bus.subscribe("facility:global.statDelta", (evt) => {
-            const { playerId = "*", target, op, value, shifts, sourceId } = evt.payload as {
-                playerId?: number | "*";
-                target: StatDelta["target"];
-                op: StatDelta["op"];
-                value: number;
-                shifts?: number;
-                sourceId?: string;
-            };
-            const remainingShifts = shifts && shifts > 0 ? shifts : 1;
-            const list = this.statDeltas.get(playerId) ?? [];
-            list.push({ target, op, value, remainingShifts, sourceId });
-            this.statDeltas.set(playerId, list);
-            });
-
-        this.bus.subscribe(FacilityEvents.global.extendStatDelta, (evt) => {
-            const { sourceId, shifts = 1 } = evt.payload as { sourceId?: string; shifts?: number };
-            if (!sourceId || shifts <= 0) return;
-            for (const [, list] of this.statDeltas) {
-                for (const modifier of list) {
-                    if (modifier.sourceId === sourceId) modifier.remainingShifts += shifts;
-                }
-            }
-        });
-
-        this.bus.subscribe("facility:global.skillModifier", (evt) => {
-            const { playerId = "*", skillName, modifier, shifts, sourceId } = evt.payload as {
-                playerId?: number | "*";
-                skillName?: string;
-                modifier: AnyModifier;
-                shifts?: number;
-                sourceId?: string;
-            };
-            const remainingShifts = shifts && shifts > 0 ? shifts : 1;
-            const list = this.skillMods.get(playerId) ?? [];
-            list.push({ skillName, modifier, remainingShifts, sourceId });
-            this.skillMods.set(playerId, list);
-        });
-
-        this.bus.subscribe(FacilityEvents.global.extendSkillModifier, (evt) => {
-            const { sourceId, shifts = 1 } = evt.payload as { sourceId?: string; shifts?: number };
-            if (!sourceId || shifts <= 0) return;
-            for (const [, list] of this.skillMods) {
-                for (const entry of list) {
-                    if (entry.sourceId === sourceId) entry.remainingShifts += shifts;
-                }
-            }
-        });
-
         this.bus.subscribe("facility:song.played", (evt) => {
             const payload = evt.payload as { globalEventId?: string };
             if (!payload?.globalEventId) return;
@@ -1566,9 +1488,6 @@ export class Facility{
 
             // reset per‑shift state
             player.get<SkillsModule>("skills").resetAll();
-            //Apply modifiers
-            const mods = this.getSkillMods(playerId);
-            player.get<SkillsModule>("skills").applyModifiers(mods);
 
             // Apply quality decay based on previous shift production, but skip on first shift
             if (this.shiftCounter > 0) {
@@ -1685,15 +1604,10 @@ export class Facility{
 
         }
 
-        //Decay global effects
-        this.decayGlobalEffects();
-
-        // Remove expired modifiers for skills
         for (const [, playerId] of this.workstationOccupants) {
             const player = this.router.get(playerId) as DairyPlayer | undefined;
             if (!player) continue;
-            const mods = this.getSkillMods(playerId); // exclude expired modifier
-            player.get<SkillsModule>("skills").applyModifiers(mods); // replaces activeModifiers
+            player.tryGet<ModifierModule>("modifiers")?.tickShift();
         }
 
         this.rebuildMoonstrelSongAuras();
@@ -1701,141 +1615,94 @@ export class Facility{
         this.listProduction();
     }
 
-    private applyGlobalEffects(evt: GlobalEventDef) {
-        // stats
-        for (const s of evt.stats ?? []) {
-            if (s.target === "energy") {
-            // reuse recoveryMods as a global modifier
-            const shifts = evt.durationShifts ?? 1;
-            this.bus.publish({ type: FacilityEvents.shift.adjustRecovery, payload: { bonus: s.op === "add" ? s.value : undefined, multiplier: s.op === "mult" ? s.value : undefined, shifts, sourceId: evt.id } });
-            }
-            // xp/economy/score/custom: publish a bus event so other systems can subscribe
-            this.bus.publish({ type: "facility:global.statDelta", payload: { target: s.target, op: s.op, value: s.value, shifts: evt.durationShifts ?? 1, sourceId: evt.id } });
-        }
+    private applyGlobalEffects(evt: GlobalEventDef, playerId?: number) {
+        for (const targetId of this.getModifierTargetPlayers(playerId)) {
+            const modifiers = this.router.get(targetId)?.tryGet<ModifierModule>("modifiers");
+            if (!modifiers) continue;
 
-        // skills: push modifiers into activeModifiers via bus or directly
-        for (const sm of evt.skills ?? []) {
-            this.bus.publish({
-            type: "facility:global.skillModifier",
-            payload: { skillName: sm.skillName, modifier: sm.modifier, shifts: sm.remainingShifts ?? evt.durationShifts ?? 1, sourceId: evt.id }
-            });
+            for (const stat of evt.stats ?? []) {
+                modifiers.addMany(fromStatDelta({
+                    ...stat,
+                    remainingShifts: evt.durationShifts ?? 1,
+                    sourceId: evt.id,
+                }, {
+                    id: `event:${evt.id}:${stat.target}:${targetId}`,
+                    sourceType: "event",
+                    sourceId: evt.id,
+                    ownerPlayerId: targetId,
+                }));
+            }
+
+            for (const skillModifier of evt.skills ?? []) {
+                modifiers.addMany(fromSkillModifier({
+                    ...skillModifier.modifier,
+                    skillWhitelist: skillModifier.skillName
+                        ? [...(skillModifier.modifier.skillWhitelist ?? []), skillModifier.skillName]
+                        : skillModifier.modifier.skillWhitelist,
+                }, {
+                    id: `event:${evt.id}:skill:${targetId}:${skillModifier.skillName ?? "all"}`,
+                    sourceType: "event",
+                    sourceId: evt.id,
+                    ownerPlayerId: targetId,
+                }).map((definition) => ({
+                    ...definition,
+                    duration: { type: "shifts", remaining: skillModifier.remainingShifts ?? evt.durationShifts ?? 1 },
+                })));
+            }
+
+            for (const [index, qualityModifier] of (evt.quality ?? []).entries()) {
+                if (qualityModifier.playerId != null && qualityModifier.playerId !== "*" && qualityModifier.playerId !== targetId) continue;
+                modifiers.addMany(fromQualityModifier({
+                    ...qualityModifier.modifier,
+                    remainingShifts: qualityModifier.remainingShifts ?? evt.durationShifts ?? 1,
+                    sourceId: evt.id,
+                }, {
+                    id: `event:${evt.id}:quality:${targetId}:${index}`,
+                    sourceType: "event",
+                    sourceId: evt.id,
+                    ownerPlayerId: targetId,
+                    remainingShifts: qualityModifier.remainingShifts ?? evt.durationShifts ?? 1,
+                }));
+            }
         }
     }
 
     private extendGlobalEffects(evt: GlobalEventDef, shifts: number) {
         if (shifts <= 0) return;
-        this.bus.publish({ type: FacilityEvents.shift.extendRecovery, payload: { sourceId: evt.id, shifts } });
-        this.bus.publish({ type: FacilityEvents.global.extendStatDelta, payload: { sourceId: evt.id, shifts } });
-        this.bus.publish({ type: FacilityEvents.global.extendSkillModifier, payload: { sourceId: evt.id, shifts } });
-        this.bus.publish({ type: "quality:modifier", payload: { playerId: "*", modifier: { sourceId: evt.id }, action: "extend", shifts } });
+        for (const targetId of this.getModifierTargetPlayers()) {
+            this.router.get(targetId)?.tryGet<ModifierModule>("modifiers")?.extendBySource(evt.id, shifts);
+        }
     }
 
     private removeGlobalEffects(evt: GlobalEventDef) {
         // For stat deltas sent via bus, listeners should remove on expiry using the shifts counter they maintain.
         // For recoveryMods we don’t need explicit removal; they expire by shifts.
-        this.bus.publish({ type: "facility:global.statDelta.clear", payload: { eventId: evt.id } });
-        this.bus.publish({ type: "facility:global.skillModifier.clear", payload: { eventId: evt.id } });
+        for (const targetId of this.getModifierTargetPlayers()) {
+            this.router.get(targetId)?.tryGet<ModifierModule>("modifiers")?.removeBySource(evt.id);
+        }
     }
 
     private computeRecovery(playerId: number, base: number): number {
-        const trimAndApply = (mods?: { multiplier?: number; bonus?: number; remainingShifts: number; sourceId?: string }[]) => {
-            const kept: { multiplier?: number; bonus?: number; remainingShifts: number; sourceId?: string }[] = [];
-            let amountDelta = 0;
-
-            for (const m of mods ?? []) {
-                if (m.remainingShifts <= 0) continue;
-                const nextRemaining = m.remainingShifts - 1;
-
-                // apply effect
-                // multiplier effects are applied in computeRecovery aggregation below; we just pass through
-                // bonuses are also applied later; aggregation expects the modifiers themselves
-                kept.push({ ...m, remainingShifts: nextRemaining });
-            }
-
-            return kept;
-        };
-
-        const globals = trimAndApply(this.recoveryMods.get("*"));
-        const personal = trimAndApply(this.recoveryMods.get(playerId));
-
-        const all = [...globals, ...personal];
-        let amount = base;
-        for (const m of all) {
-            if (m.multiplier != null) amount = Math.floor(amount * m.multiplier);
-            if (m.bonus != null) amount += m.bonus;
-        }
-
-        // persist updated remainingShifts (already decremented)
-        this.recoveryMods.set("*", globals.filter(m => m.remainingShifts > 0));
-        this.recoveryMods.set(playerId, personal.filter(m => m.remainingShifts > 0));
-
-        return amount;
-    }
-    private getStatMods(target: StatDelta["target"], playerId: number): StatDelta[] {
-        const globals = this.statDeltas.get("*") ?? [];
-        const personal = this.statDeltas.get(playerId) ?? [];
-        return [...globals, ...personal].filter(m => m.target === target);
+        return this.router.get(playerId)?.tryGet<ModifierModule>("modifiers")?.resolveNumber("energy.recovery", base, { playerId }) ?? base;
     }
 
     private applyStat(target: StatDelta["target"], base: number, playerId: number): number {
-        let val = base;
-        for (const m of this.getStatMods(target, playerId)) {
-            if (m.op === "mult") val = Math.floor(val * m.value);
-            else val += m.value;
-        }
-        return val;
-    }
-
-    private getSkillMods(playerId: number): AnyModifier[] {
-        const globals = this.skillMods.get("*") ?? [];
-        const personal = this.skillMods.get(playerId) ?? [];
-        const merged = [...globals, ...personal];
-        // if skillName is set, SkillEngine will filter via whitelist/blacklist on the modifier itself
-        return merged.map(m => {
-            if (m.skillName) {
-                return { ...m.modifier, skillWhitelist: [...(m.modifier.skillWhitelist ?? []), m.skillName] };
-            }
-            return m.modifier;
-        });
+        const modifierTarget = target === "xp"
+            ? "xp.gain"
+            : target === "economy"
+                ? "economy.payout"
+                : target === "energy"
+                    ? "energy.recovery"
+                    : null;
+        if (!modifierTarget) return base;
+        return this.router.get(playerId)?.tryGet<ModifierModule>("modifiers")?.resolveNumber(modifierTarget, base, { playerId }) ?? base;
     }
 
     private getInspectionModifierLines(playerId: number, player: DairyPlayer): string[] {
         const lines: string[] = [];
-
-        const skills = player.tryGet<SkillsModule>("skills");
-        for (const modifier of skills?.state.activeModifiers ?? []) {
-            lines.push(`- skill active: ${this.describeModifier(modifier)}`);
-        }
-
-        const quality = player.tryGet<QualityModule>("quality");
-        for (const modifier of quality?.modifiers ?? []) {
-            lines.push(`- quality: ${this.describeModifier(modifier)}`);
-        }
-
-        const bull = player.tryGet<BullModule>("bull");
-        for (const modifier of bull?.modifiers ?? []) {
-            lines.push(`- bull: ${this.describeModifier(modifier)}`);
-        }
-
-        for (const modifier of this.recoveryMods.get("*") ?? []) {
-            lines.push(`- recovery global: ${this.describeModifier(modifier)}`);
-        }
-        for (const modifier of this.recoveryMods.get(playerId) ?? []) {
-            lines.push(`- recovery player: ${this.describeModifier(modifier)}`);
-        }
-
-        for (const modifier of this.statDeltas.get("*") ?? []) {
-            lines.push(`- stat global: ${this.describeModifier(modifier)}`);
-        }
-        for (const modifier of this.statDeltas.get(playerId) ?? []) {
-            lines.push(`- stat player: ${this.describeModifier(modifier)}`);
-        }
-
-        for (const entry of this.skillMods.get("*") ?? []) {
-            lines.push(`- skill queued global${entry.skillName ? ` (${entry.skillName})` : ""}: ${this.describeModifier({ ...entry.modifier, remainingShifts: entry.remainingShifts })}`);
-        }
-        for (const entry of this.skillMods.get(playerId) ?? []) {
-            lines.push(`- skill queued player${entry.skillName ? ` (${entry.skillName})` : ""}: ${this.describeModifier({ ...entry.modifier, remainingShifts: entry.remainingShifts })}`);
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        for (const modifier of modifiers?.list() ?? []) {
+            lines.push(this.formatInspectionModifier(modifier));
         }
 
         return lines.length ? lines : ["- none"];
@@ -1848,16 +1715,10 @@ export class Facility{
 
         for (const playerId of occupantIds) {
             const player = this.router.get(playerId) as DairyPlayer | undefined;
-            const skills = player?.tryGet<SkillsModule>("skills");
-            const preservedSongUses = new Map<string, number | undefined>();
-            for (const modifier of skills?.state.activeModifiers ?? []) {
-                if (modifier.sourceId?.startsWith(this.moonstrelAuraSourcePrefix)) {
-                    preservedAuraUses.set(`${playerId}:${modifier.sourceId}`, modifier.usesRemaining);
-                    continue;
-                }
-                if (modifier.sourceId?.startsWith("song:")) {
-                    preservedSongUses.set(modifier.sourceId, modifier.usesRemaining);
-                }
+            const modifiers = player?.tryGet<ModifierModule>("modifiers");
+            const preservedSongUses = modifiers?.getUsesBySource("song:") ?? new Map<string, number | undefined>();
+            for (const [sourceId, usesRemaining] of modifiers?.getUsesBySource(this.moonstrelAuraSourcePrefix) ?? []) {
+                preservedAuraUses.set(`${playerId}:${sourceId}`, usesRemaining);
             }
             preservedSongUsesByPlayer.set(playerId, preservedSongUses);
         }
@@ -1947,21 +1808,7 @@ export class Facility{
     }
 
     private clearMoonstrelAuraModifiersForPlayer(player: DairyPlayer): void {
-        const skills = player.tryGet<SkillsModule>("skills");
-        if (skills) {
-            skills.state.activeModifiers = skills.state.activeModifiers.filter(
-                (modifier) => !modifier.sourceId?.startsWith(this.moonstrelAuraSourcePrefix),
-            );
-        }
-
-        const quality = player.tryGet<QualityModule>("quality");
-        if (quality) {
-            quality.modifiers.splice(
-                0,
-                quality.modifiers.length,
-                ...quality.modifiers.filter((modifier) => !modifier.sourceId?.startsWith(this.moonstrelAuraSourcePrefix)),
-            );
-        }
+        player.tryGet<ModifierModule>("modifiers")?.removeBySourcePrefix(this.moonstrelAuraSourcePrefix);
     }
 
     private applyMoonstrelAuraToPlayer(
@@ -1972,31 +1819,55 @@ export class Facility{
     ): void {
         const player = this.router.get(targetPlayerId) as DairyPlayer | undefined;
         if (!player) return;
+        const modifiers = player.tryGet<ModifierModule>("modifiers");
+        if (!modifiers) return;
 
-        const skills = player.tryGet<SkillsModule>("skills");
         for (const [index, entry] of (activeSong.skillModifiers ?? []).entries()) {
-            if (!skills) break;
             const sourceId = this.getMoonstrelAuraSkillSourceId(sourcePlayerId, activeSong, index);
-            const defaultUses = entry.modifier.usesRemaining ?? entry.remainingShifts;
+            const defaultUses = entry.modifier.usesRemaining;
             const usesRemaining = preservedAuraUses.has(`${targetPlayerId}:${sourceId}`)
                 ? preservedAuraUses.get(`${targetPlayerId}:${sourceId}`)
                 : defaultUses;
 
-            skills.state.activeModifiers.push({
+            modifiers.addMany(fromSkillModifier({
                 ...this.scaleAuraSkillModifier(entry.modifier, activeSong.stackLevel),
                 usesRemaining,
+            }, {
+                id: `${sourceId}:${targetPlayerId}`,
+                sourceType: "song",
                 sourceId,
-            });
+                ownerPlayerId: targetPlayerId,
+            }));
         }
 
-        const quality = player.tryGet<QualityModule>("quality");
         for (const [index, entry] of (activeSong.qualityModifiers ?? []).entries()) {
-            if (!quality) break;
-            quality.modifiers.push({
+            modifiers.addMany(fromQualityModifier({
                 ...this.scaleAuraQualityModifier(entry.modifier, activeSong.stackLevel),
                 remainingShifts: entry.remainingShifts ?? activeSong.remainingShifts,
                 sourceId: this.getMoonstrelAuraQualitySourceId(sourcePlayerId, activeSong, index),
-            });
+            }, {
+                id: `${this.getMoonstrelAuraQualitySourceId(sourcePlayerId, activeSong, index)}:${targetPlayerId}`,
+                sourceType: "song",
+                sourceId: this.getMoonstrelAuraQualitySourceId(sourcePlayerId, activeSong, index),
+                ownerPlayerId: targetPlayerId,
+                remainingShifts: entry.remainingShifts ?? activeSong.remainingShifts,
+            }));
+        }
+
+        for (const [index, entry] of (activeSong.bullModifiers ?? []).entries()) {
+            const sourceId = `${this.moonstrelAuraSourcePrefix}${sourcePlayerId}:${activeSong.id}:${activeSong.variant ?? "base"}:bull:${index}`;
+            modifiers.addMany(fromBullModifier({
+                ...entry.modifier,
+                chargeMultiplier: entry.modifier.chargeMultiplier != null
+                    ? Number(Math.min(1.3, entry.modifier.chargeMultiplier + (0.04 * Math.max(0, Math.min(3, activeSong.stackLevel) - 1))).toFixed(3))
+                    : undefined,
+            }, {
+                id: `${sourceId}:${targetPlayerId}`,
+                sourceType: "song",
+                sourceId,
+                ownerPlayerId: targetPlayerId,
+                remainingShifts: entry.remainingShifts ?? activeSong.remainingShifts,
+            }));
         }
     }
 
@@ -2127,25 +1998,28 @@ export class Facility{
         return match?.icon ?? "?";
     }
 
-    private describeModifier(modifier: object): string {
-        const parts = Object.entries(modifier as Record<string, unknown>)
-            .filter(([, value]) => value !== undefined)
-            .map(([key, value]) => `${key}=${this.describeModifierValue(value)}`);
-
-        return parts.length ? parts.join(", ") : "empty";
+    private formatInspectionModifier(modifier: ModifierDefinition): string {
+        const type = modifier.operation.type;
+        const value = this.describeInspectionModifierValue(modifier);
+        const duration = this.describeInspectionModifierDuration(modifier.duration);
+        const origin = `${modifier.sourceType}:${modifier.sourceId}`;
+        return `- ${modifier.target} | type: ${type} | value: ${value} | duration: ${duration} | origin: ${origin}`;
     }
 
-    private describeModifierValue(value: unknown): string {
-        if (typeof value === "function") return "[function]";
-        if (Array.isArray(value)) return `[${value.join(", ")}]`;
-        if (value && typeof value === "object") {
-            try {
-                return JSON.stringify(value);
-            } catch {
-                return "[object]";
-            }
+    private describeInspectionModifierValue(modifier: ModifierDefinition): string {
+        if (modifier.operation.type === "add") {
+            return `${modifier.operation.value >= 0 ? "+" : ""}${modifier.operation.value}`;
         }
-        return String(value);
+        if (modifier.operation.type === "mult") {
+            return `x${modifier.operation.value.toFixed(2)}`;
+        }
+        return "effect transform";
+    }
+
+    private describeInspectionModifierDuration(duration: ModifierDefinition["duration"]): string {
+        if (duration.type === "manual") return "persistent";
+        if (duration.type === "shifts") return `${duration.remaining} ${duration.remaining === 1 ? "shift" : "shifts"}`;
+        return `${duration.remaining} ${duration.remaining === 1 ? "use" : "uses"}`;
     }
 
     private getBullStageLabel(bull: BullModule): string {
@@ -2162,7 +2036,7 @@ export class Facility{
     }
 
     private getBullEnergyCap(bull: BullModule): number {
-        return bull.state.threshold + bull.modifiers.reduce((acc, m) => acc + (m.energyMaxBonus ?? 0), 0);
+        return bull.getEnergyCap();
     }
 
     private applyShiftPayout(playerId: number): number {
@@ -2222,26 +2096,22 @@ export class Facility{
     }
 
     private getActiveMelodyShiftEffects(playerId: number): { scoreBonus: number; energyBonus: number; xpBonus: number } {
-        const song = this.router.get(playerId)?.tryGet<SongModule>("song");
-        const activeMelodies = song?.listActiveSongs().filter((activeSong) => activeSong.kind === "melody") ?? [];
-
-        return activeMelodies.reduce(
-            (totals, activeMelody) => {
-                totals.scoreBonus += (activeMelody.shiftScorePerLevel ?? 0) * activeMelody.stackLevel;
-                totals.energyBonus += (activeMelody.shiftEnergyPerLevel ?? 0) * activeMelody.stackLevel;
-                totals.xpBonus += activeMelody.shiftXpBonus ?? 0;
-                return totals;
-            },
-            { scoreBonus: 0, energyBonus: 0, xpBonus: 0 },
-        );
+        const modifiers = this.router.get(playerId)?.tryGet<ModifierModule>("modifiers");
+        const ctx = { playerId, actionType: "shiftEnd" };
+        return {
+            scoreBonus: modifiers?.resolveNumber("shift.scoreBonus", 0, ctx) ?? 0,
+            energyBonus: modifiers?.resolveNumber("shift.energyBonus", 0, ctx) ?? 0,
+            xpBonus: modifiers?.resolveNumber("shift.xpBonus", 0, ctx) ?? 0,
+        };
     }
 
     private applyActiveMelodyXp(playerId: number, bonusXp: number): void {
         if (bonusXp <= 0) return;
         const classing = this.router.get(playerId)?.tryGet<ClassingModule>("classing");
         if (!classing || classing.state.classId === -1) return;
-        const levels = classing.gainXp(bonusXp);
-        this.messages.whisper(playerId, `(Melody bonus XP: +${bonusXp})`);
+        const finalXp = Math.max(0, this.applyStat("xp", bonusXp, playerId));
+        const levels = classing.gainXp(finalXp);
+        this.messages.whisper(playerId, `(Melody bonus XP: +${finalXp})`);
         if (levels > 0) {
             this.messages.whisper(playerId, `(You gained ${levels} level${levels > 1 ? "s" : ""}!)`);
         }
@@ -2274,18 +2144,10 @@ export class Facility{
         }
     }
 
-    /** Call once per shift end to age out modifiers */
-    private decayGlobalEffects(): void {
-        const decay = <T extends { remainingShifts: number }>(map: Map<number | "*", T[]>) => {
-            for (const [k, list] of map) {
-                const kept = list
-                .map(m => ({ ...m, remainingShifts: m.remainingShifts - 1 }))
-                .filter(m => m.remainingShifts > 0);
-            if (kept.length) map.set(k, kept); else map.delete(k);
-            }
-        };
-        decay(this.statDeltas);
-        decay(this.skillMods);
+    private getModifierTargetPlayers(playerId?: number): number[] {
+        return playerId != null
+            ? [playerId]
+            : _.uniq(Array.from(this.workstationOccupants.values()));
     }
 
     private resetBotPosition(): void {
