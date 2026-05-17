@@ -28,6 +28,7 @@ import { RouletteGame } from "./casino/roulette";
 import { CasinoStore, Player } from "./casino/casinostore";
 import { generatePassword, remainingTimeString } from "../utils";
 import {
+    Forfeit,
     FORFEITS,
     forfeitsString,
     restraintsRemoveString,
@@ -48,6 +49,12 @@ export function getItemsBlockingForfeit(
     const slots = new Set(items.map((i) => i.Group));
 
     return char.Appearance.Appearance.filter((i) => slots.has(i.Group));
+}
+
+export function getSlotsNeededByForfeit(
+    items: BC_AppearanceItem[],
+): AssetGroupName[] {
+    return items.map((i) => i.Group);
 }
 
 export const makeBio = (
@@ -261,7 +268,11 @@ export class Casino {
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        this.conn.reply(msg, this.game.HELPCOMMANDMESSAGE);
+        this.conn.SendMessage(
+            "Whisper",
+            this.game.HELPCOMMANDMESSAGE,
+            sender.MemberNumber,
+        );
     };
 
     private onCommandForfeits = (
@@ -274,7 +285,7 @@ Restraints are for 20 minutes, unless otherwise stated.
 
 ${forfeitsString()}
 `;
-        this.conn.reply(msg, text);
+        this.conn.SendMessage("Whisper", text, sender.MemberNumber);
     };
 
     private onCommandCommands = (
@@ -282,7 +293,11 @@ ${forfeitsString()}
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        this.conn.reply(msg, this.game.COMMANDSMESSAGE);
+        this.conn.SendMessage(
+            "Whisper",
+            this.game.COMMANDSMESSAGE,
+            sender.MemberNumber,
+        );
     };
 
     private onCommandChips = async (
@@ -310,7 +325,7 @@ ${forfeitsString()}
             const player = await this.store.getPlayer(sender.MemberNumber);
             this.conn.reply(
                 msg,
-                `${sender}, you have ${player.credits} chips.`,
+                `${sender}, you have ${player.credits} chips${sender.MemberNumber === 78366 ? ` (${Math.floor(player.credits / 100)} Lillys)` : ""}.`,
             );
         }
     };
@@ -435,6 +450,7 @@ ${forfeitsString()}
         }
 
         let target: API_Character | undefined;
+        let forfeit: Forfeit | undefined;
         if (serviceName === "player") {
             if (args.length < 2) {
                 this.conn.reply(
@@ -463,6 +479,73 @@ ${forfeitsString()}
                 );
                 return;
             }
+
+            if (
+                target.Appearance.InventoryGet("ItemDevices")?.getData()
+                    .Property.LockMemberNumber !== this.conn.Player.MemberNumber
+            ) {
+                this.conn.reply(
+                    msg,
+                    "Sorry, that player is not for sale by me",
+                );
+                return;
+            }
+        }
+
+        if (serviceName === "restraint") {
+            if (args.length < 3) {
+                this.conn.reply(
+                    msg,
+                    "Usage: buy restraint <name or member number> <name of the forfeit>",
+                );
+                return;
+            }
+            target = this.conn.chatRoom.findCharacter(args[1]);
+            forfeit = FORFEITS[args[2]];
+            if (!target) {
+                this.conn.reply(msg, "I can't find that person.");
+                return;
+            }
+            if (!forfeit) {
+                this.conn.reply(msg, "I can't find that forfeit.");
+                return;
+            }
+
+            if (forfeit.name === "Cage") {
+                this.conn.reply(
+                    msg,
+                    "To buy cages please use 'buy player' instead",
+                );
+                return;
+            }
+
+            if (target.MemberNumber === sender.MemberNumber) {
+                this.conn.reply(msg, "You can't buy your own codes.");
+                return;
+            }
+
+            if (
+                !target.Appearance.InventoryGet(forfeit.items(target)[0].Group)
+            ) {
+                this.conn.reply(
+                    msg,
+                    `It doesn't look like that player is wearing ${forfeit.name}.`,
+                );
+                return;
+            }
+
+            if (
+                target.Appearance.InventoryGet(
+                    forfeit.items(target)[0].Group,
+                ).getData().Property.LockMemberNumber !==
+                this.conn.Player.MemberNumber
+            ) {
+                this.conn.reply(
+                    msg,
+                    `You can only buy codes of my restraints, not others.`,
+                );
+                return;
+            }
         }
 
         if (serviceName === "bonus") {
@@ -478,6 +561,11 @@ ${forfeitsString()}
         }
 
         const player = await this.store.getPlayer(sender.MemberNumber);
+        if (!service.value) {
+            if (serviceName === "restraint") {
+                service.value = forfeit.value * 2;
+            }
+        }
         if (player.credits < service.value) {
             this.conn.reply(msg, "You don't have enough chips.");
             return;
@@ -512,6 +600,19 @@ ${forfeitsString()}
                 "Chat",
                 `${sender} has bought ${target} and is now the proud owner of an unfortunate gambler.`,
             );
+        } else if (serviceName === "restraint") {
+            this.conn.SendMessage(
+                "Chat",
+                `${sender} has bought the codes to ${target}'s ${forfeit.name}.`,
+            );
+            this.conn.SendMessage(
+                "Whisper",
+                `The code to ${forfeit.name} on ${target} is: ${target.Appearance.InventoryGet(forfeit.items(target)[0].Group).getData().Property.Password}.`,
+                sender.MemberNumber,
+            );
+            this.lockedItems
+                .get(target.MemberNumber)
+                ?.delete(forfeit.items(sender)[0].Group);
         } else if (serviceName === "cocktail") {
             const keys = Object.keys(COCKTAILS);
             const randomKey = keys[Math.floor(Math.random() * keys.length)];
@@ -559,7 +660,7 @@ ${forfeitsString()}
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        if (!sender.IsRoomAdmin()) {
+        if (!sender.IsRoomWhitelistedOrAdmin()) {
             this.conn.reply(msg, "Sorry, you need to be an admin");
             return;
         }
@@ -747,7 +848,8 @@ ${forfeitsString()}
         const applyFn = FORFEITS[bet.stakeForfeit].applyItems;
         const items = FORFEITS[bet.stakeForfeit].items(char);
         const colourLayers = FORFEITS[bet.stakeForfeit].colourLayers;
-        let color = char.Appearance.InventoryGet("HairFront").GetColor();
+        let color = char?.Appearance?.InventoryGet("HairFront")?.GetColor();
+        if (!color) color = "Default";
         color = color[0] as BCColor;
 
         let storeColor = await this.store.getPlayer(bet.memberNumber);
@@ -864,7 +966,7 @@ ${forfeitsString()}
         args: string[],
     ) => {
         if (!sender.IsRoomWhitelistedOrAdmin()) {
-            this.conn.reply(msg, "Sorry, you need to be an admin");
+            this.conn.reply(msg, "Sorry, you need to be whitelisted");
             return;
         }
         if (args.length < 1) {

@@ -16,7 +16,7 @@ import { API_Character, AssetGet, BC_AppearanceItem } from "bc-bot";
 import { generatePassword } from "../../utils";
 import { PET_EARS } from "../petspa";
 
-interface Forfeit {
+export interface Forfeit {
     name: string;
     value: number;
     items: (player: API_Character) => BC_AppearanceItem[];
@@ -221,8 +221,12 @@ export const FORFEITS: Record<string, Forfeit> = {
 interface Service {
     name: string;
     description: string;
-    value: number;
+    value?: number;
+    priceString?: string;
+    commandExample?: string;
 }
+
+// TODO buy outfits?
 
 export const SERVICES: Record<string, Service> = {
     cocktail: {
@@ -235,22 +239,30 @@ export const SERVICES: Record<string, Service> = {
         name: "Buy a caged player",
         description: "Why waste their misfortune?",
         value: 100,
+        commandExample: "/bot buy player <name or member number>",
+    },
+    restraint: {
+        name: "Buy the code to a restriant of a player",
+        description: "Guaranteed to be the correct code - usually.",
+        priceString: "2x the restraint value",
+        commandExample:
+            "/bot buy restraint <name or member number> <forfeit name>",
     },
     lap: {
         name: "Sit in Lilly's lap",
         description: "Enjoy sitting in Lilly's lap for an hour.",
         value: 20000,
     },
-    sessionlilly: {
+    /* sessionlilly: {
         name: "Session with Lilly",
         description:
             "Some time with Lilly in private. Wanna be a cute little pet? Or perhaps an owner for once?~",
         value: 696900000000,
-    },
-    outfitlilly: {
-        name: "Outfit from Lilly",
-        description: "Let Lilly make an outfit just for you~",
-        value: 69000000,
+    }, */
+    outfitlisa: {
+        name: "Outfit from Lisa",
+        description: "Let Lisa (201046) make an outfit just for you~",
+        value: 500,
     },
     /*"massage": {
         name: "Pixie Massage",
@@ -409,17 +421,17 @@ export function restraintsRemoveString(): string {
 }
 
 function commandForService(name: string): string {
-    return (
-        `/bot buy ${name}` +
-        (name === "player" ? " <name or member number>" : "")
-    );
+    if (SERVICES[name].commandExample) {
+        return SERVICES[name].commandExample;
+    }
+    return `/bot buy ${name}`;
 }
 
 export function servicesString(): string {
     return Object.entries(SERVICES)
         .map(
             ([name, s]) =>
-                `${s.name}: ${s.value} chips\n${s.description}\n${commandForService(name)}\n`,
+                `${s.name}: ${s.value ? s.value + " chips" : s.priceString}\n${s.description}\n${commandForService(name)}\n`,
         )
         .join("\n");
 }
