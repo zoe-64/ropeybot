@@ -245,7 +245,8 @@ export const SERVICES: Record<string, Service> = {
         name: "Buy the code to a restriant of a player",
         description: "Guaranteed to be the correct code - usually.",
         priceString: "2x the restraint value",
-        commandExample: "/bot buy restraint <name or member number> <forfeit name>",
+        commandExample:
+            "/bot buy restraint <name or member number> <forfeit name>",
     },
     lap: {
         name: "Sit in Lilly's lap",
@@ -423,9 +424,7 @@ function commandForService(name: string): string {
     if (SERVICES[name].commandExample) {
         return SERVICES[name].commandExample;
     }
-    return (
-        `/bot buy ${name}`
-    );
+    return `/bot buy ${name}`;
 }
 
 export function servicesString(): string {

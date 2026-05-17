@@ -17,7 +17,6 @@ import {
 } from "bc-bot";
 //TODOs:
 // + reconsider payouts for forfeits half as much makes more sense
-// - insurance
 // - random bonus rounds
 
 const BLACKJACKCOMMANDS = `Blackjack commands:
@@ -222,7 +221,6 @@ export class BlackjackGame implements Game {
         await waitForCondition(() => this.willDealAt === undefined);
         await waitForCondition(() => this.autoStandTimeout === undefined);
         await waitForCondition(() => this.autoStandTimeout === undefined);
-        // await wait(2000);
 
         this.casino.commandParser.unregister("cancel");
         this.casino.commandParser.unregister("bet");
@@ -653,8 +651,7 @@ export class BlackjackGame implements Game {
                 sender.MemberNumber,
             );
             return;
-        }
-        else if (this.playerHands.get(bet) === undefined) {
+        } else if (this.playerHands.get(bet) === undefined) {
             this.conn.SendMessage(
                 "Whisper",
                 "You don't have a hand to surrender.",
@@ -777,14 +774,9 @@ export class BlackjackGame implements Game {
                     }
 
                     let time =
-                        FORFEITS[bet.stakeForfeit].lockTimeMs /
-                        1000 /
-                        60;
+                        FORFEITS[bet.stakeForfeit].lockTimeMs / 1000 / 60;
                     time = bet.surrendered ? time / 2 : time;
-                    this.casino.applyForfeit(
-                        bet,
-                        bet.surrendered ? 0.5 : 1,
-                    );
+                    this.casino.applyForfeit(bet, bet.surrendered ? 0.5 : 1);
                     message += `${player.memberName} lost and gets ${FORFEITS[bet.stakeForfeit].name} for ${time} Minutes!\n`;
                     sendMessage = true;
                 }
@@ -921,7 +913,6 @@ export class BlackjackGame implements Game {
         return this.players.flatMap((b) => b.bets);
     }
     public getBetsForPlayer(memberNumber: number): BlackjackBet[] {
-        // console.log(this.players.find((b) => b.memberNumber === memberNumber));
         return this.players
             .filter((b) => b.memberNumber === memberNumber)
             .flatMap((b) => b.bets);
