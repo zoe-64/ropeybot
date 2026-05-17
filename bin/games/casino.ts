@@ -561,17 +561,18 @@ ${forfeitsString()}
         }
 
         const player = await this.store.getPlayer(sender.MemberNumber);
-        if (!service.value) {
+        let serviceValue = service.value;
+        if (!serviceValue) {
             if (serviceName === "restraint") {
-                service.value = forfeit.value * 2;
+                serviceValue = forfeit.value * 3;
             }
         }
-        if (player.credits < service.value) {
+        if (player.credits < serviceValue) {
             this.conn.reply(msg, "You don't have enough chips.");
             return;
         }
 
-        player.credits -= service.value;
+        player.credits -= serviceValue;
         await this.store.savePlayer(player);
 
         if (serviceName === "player") {

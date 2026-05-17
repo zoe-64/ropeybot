@@ -244,7 +244,7 @@ export const SERVICES: Record<string, Service> = {
     restraint: {
         name: "Buy the code to a restriant of a player",
         description: "Guaranteed to be the correct code - usually.",
-        priceString: "2x the restraint value",
+        priceString: "3x the restraint value",
         commandExample:
             "/bot buy restraint <name or member number> <forfeit name>",
     },
