@@ -13,6 +13,7 @@ import {
 } from "bc-bot";
 //TODOs:
 // + reconsider payouts for forfeits half as much makes more sense
+// - insurance
 // - random bonus rounds
 
 const BLACKJACKCOMMANDS = `Blackjack commands:
@@ -705,6 +706,7 @@ export class BlackjackGame implements Game {
         return this.players.map((b) => b.bets[0]);
     }
     public getBetsForPlayer(memberNumber: number): BlackjackBet[] {
+        // console.log(this.players.find((b) => b.memberNumber === memberNumber));
         return this.players
             .filter((b) => b.memberNumber === memberNumber)
             .flatMap((b) => b.bets);
@@ -1031,9 +1033,12 @@ export class BlackjackGame implements Game {
         }
         this.dealerHand = [this.deck.pop(), this.deck.pop()];
         for (const player of this.players) {
+            // const LillyTestCard = this.deck.pop();
             this.playerHands.set(player.bets[0], [
                 this.deck.pop(),
                 this.deck.pop(),
+                // LillyTestCard,
+                // LillyTestCard
             ]);
             if (
                 this.calculateHandValue(

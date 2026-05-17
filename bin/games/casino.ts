@@ -249,6 +249,7 @@ export class Casino {
                     null,
                     "Unknown command",
                 );
+                // console.log(beep)
             }
         } catch (e) {
             console.error("Failed to process beep", e);
