@@ -62,7 +62,7 @@ export interface RoomDefinition {
 }
 
 // What the bot advertises as its game version
-const GAMEVERSION = "R122";
+const GAMEVERSION = "R127";
 const LZSTRING_MAGIC = "╬";
 
 class PromiseResolve<T> {
@@ -223,7 +223,9 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
     ): void {
         if (msg.length > 1000) {
             console.error("Message too long, truncating");
-            msg = msg.substring(0, 1000);
+            this.SendMessage(type, msg.substring(0, 1000), target, dict);
+            this.SendMessage(type, msg.substring(1000), target, dict);
+            return;
         }
 
         console.log(`Sending ${type}`, msg);

@@ -245,6 +245,18 @@ export class API_Character {
         return this.chatRoom?.Admin.includes(this.MemberNumber) ?? false;
     }
 
+    public IsRoomWhitelist(): boolean {
+        return this.chatRoom?.Whitelist.includes(this.MemberNumber) ?? false;
+    }
+
+    public IsRoomWhitelistedOrAdmin(): boolean {
+        return (
+            (this.chatRoom?.Whitelist.includes(this.MemberNumber) ||
+                this.chatRoom?.Admin.includes(this.MemberNumber)) ??
+            false
+        );
+    }
+
     public Tell(msgType: TellType, msg: string): void {
         console.log(`Tell (${msgType}) ${this}: ${msg}`);
         this.connection.SendMessage(msgType, msg, this.data.MemberNumber);
