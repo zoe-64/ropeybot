@@ -124,6 +124,10 @@ export class BlackjackGame implements Game {
         this.casino.commandParser.register("split", this.onCommandSplit);
         this.casino.commandParser.register("maxbets", this.onCommandMaxBets);
         this.casino.commandParser.register(
+            "hellenisacutie",
+            this.onCommandHellenIsACutie,
+        );
+        this.casino.commandParser.register(
             "surrender",
             this.onCommandSurrender,
         );
@@ -704,6 +708,43 @@ export class BlackjackGame implements Game {
         }
     };
 
+    private onCommandHellenIsACutie = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (sender.MemberNumber !== 144736) {
+            this.conn.SendMessage(
+                "Whisper",
+                "You must be Hellen.",
+                sender.MemberNumber,
+            );
+            return;
+        }
+
+        if (args.length != 1 || args[0].match(/[^0-9]+/)) {
+            this.conn.reply(msg, "Please enter a number like /bot maxbets 3.");
+            return;
+        }
+
+        const newBetMax = parseInt(args[0]);
+        console.log(newBetMax);
+
+        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER / 2) {
+            this.conn.reply(
+                msg,
+                `Please enter a number like /bot maxbets 3. Must be between 1 and ${HARD_MAX_PER_PLAYER / 2}.`,
+            );
+            return;
+        }
+
+        this.maxBetsPerPlayer = newBetMax;
+        this.conn.reply(
+            msg,
+            `Max bets per player has been set to ${this.maxBetsPerPlayer}.`,
+        );
+    };
+
     private onCommandMaxBets = async (
         sender: API_Character,
         msg: BC_Server_ChatRoomMessage,
@@ -714,6 +755,11 @@ export class BlackjackGame implements Game {
                 msg,
                 "You must be whitelisted or an admin to use this command.",
             );
+            return;
+        }
+
+        if (sender.MemberNumber === 144736) {
+            this.conn.reply(msg, "Please use /bot hellenisacutie instead.");
             return;
         }
 
@@ -728,7 +774,7 @@ export class BlackjackGame implements Game {
         if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER) {
             this.conn.reply(
                 msg,
-                "Please enter a number like /bot maxbets 3. Must be between 1 and 10.",
+                `Please enter a number like /bot maxbets 3. Must be between 1 and ${HARD_MAX_PER_PLAYER}.`,
             );
             return;
         }
