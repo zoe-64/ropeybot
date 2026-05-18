@@ -75,7 +75,7 @@ const AUTO_STAND_TIMEOUT_MS = 45000;
 const SPLIT_TIMEOUT_INCREASE_MS = 10000; // Time added to the auto-stand timeout when a player splits their hand
 const RESET_TIMEOUT_MS = 10000; // Time after a game ends before a new game can start
 
-const HARD_MAX_PER_PLAYER = 10;
+const HARD_MAX_PER_PLAYER = 5;
 
 export interface BlackjackPlayer {
     memberNumber: number;
@@ -234,6 +234,7 @@ export class BlackjackGame implements Game {
         this.casino.commandParser.unregister("sign");
         this.casino.commandParser.unregister("skipwait");
         this.casino.commandParser.unregister("maxbets");
+        this.casino.commandParser.unregister("hellenisacutie");
         this.clear();
         resolve();
     }
@@ -730,10 +731,10 @@ export class BlackjackGame implements Game {
         const newBetMax = parseInt(args[0]);
         console.log(newBetMax);
 
-        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER / 2) {
+        if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER) {
             this.conn.reply(
                 msg,
-                `Please enter a number like /bot maxbets 3. Must be between 1 and ${HARD_MAX_PER_PLAYER / 2}.`,
+                `Please enter a number like /bot maxbets 3. Must be between 1 and ${HARD_MAX_PER_PLAYER}.`,
             );
             return;
         }

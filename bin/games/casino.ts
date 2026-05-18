@@ -23,6 +23,7 @@ import {
     AssetGet,
     BC_AppearanceItem,
     importBundle,
+    API_Message,
 } from "bc-bot";
 import { RouletteGame } from "./casino/roulette";
 import { CasinoStore, Player } from "./casino/casinostore";
@@ -129,6 +130,7 @@ export class Casino {
         }
 
         conn.on("CharacterEntered", this.onCharacterEntered);
+        conn.on("Message", this.onMessage);
         conn.on("Beep", (msg) => this.onBeep(msg));
 
         this.commandParser.register("help", this.onCommandHelp);
@@ -152,6 +154,20 @@ export class Casino {
 
         this.conn.setItemPermission(ItemPermissionLevel.OwnerLoverWhitelist);
     }
+
+    private onMessage = (message: API_Message) => {
+        if (
+            message.message.Type === "Chat" &&
+            message.message.Content.startsWith("!") &&
+            message.message.Content.length > 1
+        ) {
+            this.conn.SendMessage(
+                "Whisper",
+                "Please either whisper me the command or use /bot to combat spam.",
+                message.sender.MemberNumber,
+            );
+        }
+    };
 
     private onCharacterEntered = async (character: API_Character) => {
         const player = await this.store.getPlayer(character.MemberNumber);
