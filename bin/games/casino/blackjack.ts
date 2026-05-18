@@ -729,7 +729,6 @@ export class BlackjackGame implements Game {
         }
 
         const newBetMax = parseInt(args[0]);
-        console.log(newBetMax);
 
         if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER) {
             this.conn.reply(
@@ -770,7 +769,6 @@ export class BlackjackGame implements Game {
         }
 
         const newBetMax = parseInt(args[0]);
-        console.log(newBetMax);
 
         if (newBetMax <= 0 || newBetMax > HARD_MAX_PER_PLAYER) {
             this.conn.reply(

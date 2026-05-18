@@ -965,6 +965,17 @@ ${forfeitsString()}
                 `Still trying to cheat, ${char}? Check your active forfeits with /bot checkforfeits.`,
             );
         } else {
+            if (player.cheatStrikes === 3) {
+                char.Tell(
+                    "Whisper",
+                    `Didn't want to take the warnings? You've been removed from the scoreboard. If you think there has been a mistake, please contact Lilly (35982).`,
+                );
+            } else {
+                char.Tell(
+                    "Whisper",
+                    `You've been detected to be cheating (again). If you think there has been a mistake, please contact Lilly (35982). Remember to check your active forfeits when in doubt using /bot checkforfeits.`,
+                );
+            }
             const dunceHat = char.Appearance.AddItem(
                 AssetGet("Hat", "CollegeDunce"),
             );
