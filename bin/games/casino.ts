@@ -98,7 +98,7 @@ ${leaderBoard}
 🍀🍀🍀 Good luck! 🍀🍀🍀
 
 This bot is made with ropeybot, fixes and improvements welcome!
-https://github.com/FriendsOfBC/ropeybot
+https://github.com/LillyBlueHair/ropeybot
 `;
 
 export interface CasinoConfig {
