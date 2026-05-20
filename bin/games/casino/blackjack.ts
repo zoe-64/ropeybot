@@ -1342,6 +1342,7 @@ export class BlackjackGame implements Game {
     }
 
     private createShoe(decks: number = 1): void {
+        this.deck = [];
         console.log(`Creating a shoe with ${decks} decks.`);
         for (let i = 0; i < decks; i++) {
             if (this.deck.length > 0) {
