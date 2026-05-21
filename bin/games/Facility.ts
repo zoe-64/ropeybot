@@ -1026,6 +1026,9 @@ export class Facility{
             return;
         }
 
+        const vibeGroup: AssetGroupName = target.hasPenis() ? "ItemButt" : "ItemDevices";
+        setCharacterVibeMode(target, vibeGroup, 9);
+
         //const orignal = await undressCharacter(target);
 
         //await undressCharacter(target);
@@ -1414,7 +1417,11 @@ export class Facility{
             });
         }
 
-        return ranking.sort((a, b) => b.production - a.production);
+        return ranking.sort((a, b) => {
+            const productionDelta = b.production - a.production;
+            if (productionDelta !== 0) return productionDelta;
+            return b.quality - a.quality;
+        });
     }
 
     /**
@@ -1539,6 +1546,7 @@ export class Facility{
         if (!this.shiftInProgress) return;
 
         this.shiftInProgress = false;
+        this.clearMissingWorkstationOccupants();
         const shiftNumber = ++this.shiftCounter;
         this.messages.broadcast(dialog.phase2.shiftEnd.replace("$number", String(shiftNumber)));
         this.bus.publish({
@@ -1600,7 +1608,6 @@ export class Facility{
     }
 
     async endShift() {
-        this.clearMissingWorkstationOccupants();
         // Announce break/open state and ensure shift flag is down
         this.messages.broadcast(dialog.phase2.break);
         this.shiftInProgress = false;
