@@ -3,7 +3,7 @@ import {
   ModifierDefinition,
   ModifierQuery,
   ModifierResolveContext,
-} from "../modifiers/Modifier.types";
+} from "../moduleTypes/Modifier.types";
 import { SkillEffect } from "../skills/Skill.types";
 
 export type ModifierModule = PlayerModule & {

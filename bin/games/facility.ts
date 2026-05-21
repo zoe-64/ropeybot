@@ -48,7 +48,7 @@ import { QualityModifier, QualityModule } from "../domain/modules/quality";
 import { BullModule } from "../domain/modules/bull";
 import { GlobalEventManager } from "./facility/events/GlobalEventManager";
 import { GlobalEventDef } from "./facility/events/globalEvents";
-import { ModifierDefinition } from "../domain/modifiers/Modifier.types";
+import { ModifierDefinition } from "../domain/moduleTypes/Modifier.types";
 import { AnyModifier } from "../domain/skills/Skill.types";
 import { songBook, songNotes } from "./facility/events/songBook";
 import { ActiveSong, SongModule, SongNoteFamily, SongRecipe } from "../domain/modules/song";
@@ -1338,6 +1338,26 @@ export class Facility{
         if (rebuildAuras) this.rebuildMoonstrelSongAuras();
     }
 
+    private clearMissingWorkstationOccupants(): void {
+        const missingAssignments: Array<{ playerId: number; workstationId: number }> = [];
+
+        for (const [workstationId, playerId] of this.workstationOccupants) {
+            const target = this.conn.chatRoom.findCharacter(playerId.toString());
+            if (!target) {
+                missingAssignments.push({ playerId, workstationId });
+            }
+        }
+
+        for (const { playerId, workstationId } of missingAssignments) {
+            this.unassignPlayerFromWorkstation(playerId, workstationId, false);
+            console.log(`Player ${playerId} cleared from workstation ${workstationId} because they are no longer in the room`);
+        }
+
+        if (missingAssignments.length > 0) {
+            this.rebuildMoonstrelSongAuras();
+        }
+    }
+
     private findAvailableWorkstation(): number | null {
         const orderedIds = Object.keys(workStations)
             .map((k) => Number(k))
@@ -1580,6 +1600,7 @@ export class Facility{
     }
 
     async endShift() {
+        this.clearMissingWorkstationOccupants();
         // Announce break/open state and ensure shift flag is down
         this.messages.broadcast(dialog.phase2.break);
         this.shiftInProgress = false;

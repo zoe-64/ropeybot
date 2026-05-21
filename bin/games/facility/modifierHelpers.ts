@@ -1,5 +1,5 @@
 import { BullModifier } from "../../domain/moduleTypes/Bull.types";
-import { ModifierDefinition } from "../../domain/modifiers/Modifier.types";
+import { ModifierDefinition } from "../../domain/moduleTypes/Modifier.types";
 import { QualityModifier } from "../../domain/modules/quality";
 import { AnyModifier } from "../../domain/skills/Skill.types";
 import { StatDelta } from "./config";

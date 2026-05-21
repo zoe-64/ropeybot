@@ -1,5 +1,5 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
-import { ModifierDefinition } from "../modifiers/Modifier.types";
+import { ModifierDefinition } from "../moduleTypes/Modifier.types";
 import { BullModifier } from "../moduleTypes/Bull.types";
 import { ModifierModule } from "../modules/modifiers";
 import { QualityModifier } from "../modules/quality";
