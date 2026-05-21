@@ -19,9 +19,9 @@ export const getNormalPlayerCommandGuide = (): string =>
 export const makeBio = (
     leaderBoard?: string,
 ) =>
-`🌎 Azure Corporation facility A-1: Dairy Blue Farms 🌎
+`🌎 Azure Corporation facility A-1: Azure Corporation 🌎
 =======================================================
-Welcome to Dairy Blue Farms, where we strive to offer a completely different milking experience!
+Welcome to Azure Corporation, where we strive to offer a completely different milking experience!
 All visitors are free to join as long as they comply with facility specifications. Please use the 
 (scanner) to check if you are eligible to join us for a shift or two.
 
@@ -39,20 +39,14 @@ To join just write *scanner
 -Once you are dressed and have your class selected walk to the entry area over any diamond shape to get assigned a workstation
 -To confirm your workstation simply walk one step back from the pink area and then enter it again.
 
+🎼 More info
+==============
+Join the Discord server for more gameplay info and time of opening announcements: 
+https://discord.gg/KGzpXm57dG
+
 🔧 Room Commands
 ==============
 ${normalPlayerCommandGuideLines.join("\n")}
-
-🎼 Moonstrel Guide
-==============
--Moonstrel skills generate notes, check the description to see which ones.
--Your performance keeps the last 5 notes played which can play melodies or songs (from longest pattern to shortest)
--Melodies activate their effects automatically once the pattern is played, songs are stored into a buffer, to play the first song in the buffer, use the skill Sing.
--Playing the same active song again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
--Active songs project their buffs only to occupied adjacent workstations instead of the singer, and the singer earns 50 ACs per occupied adjacent station affected
--Playing the same active melody again with the same variant raises its level and extends it by 1 shift; a different variant replaces it
--Song buffer size starts at 2, grows to 3 at class level 50, and to 4 at class level 100
--Melody slots start at 1 and grow to 2 at class level 50
 `;
 
 export const MAP = "N4IgKgngDgpiBcICCAbA7gQwgZxAGnAEsUZdFA6EEBkQamm8+hxp5lhwDEAB1jtzjgJY6MA1yNFiRjAHbSZM+hwAT4vnwYiAIZq3aJ9Wfvp9xIweQ3aLm3YA4QW9fJ37Z8+tHPLH10PIAHv+Ulff2chLTcXTzChPz8ZGPpRKO9dYzEE7xi44NSJCQAvgoKRQoLnBx9bSVsK9KZc4oAggAKGvMaWtol4wPjhXXShPKbhzqGR0RifLJ8+twGxptHhxbdM6V6EsLV21p3O7189ehnDF2NyBaWR530Dcg4z8Qvlq8Wb27lyI1CrUtE85q7QaA/blSrVJwPH6uP7FF5w8Zdfw9YJQsKwwbwzGI6JrSS9b7ovIhAEdParWLrVFnWEXErFEplawVaxVZmQx7JA5pELcjLIoInAb9HIAYNFOUm01mIuhVnFcq8gul6SiwrECtSrD6FgZJUK4v1JQ+0k2li54jyhq1JsCZg8yV1VtFbWWw28tvVaUVg2tTXI/qaHpNdQO20t1vOnvIABMY4w49qkwwQ7G4+nE/RACfgOYYCgAZwoFAwc1mUx96BmM+QFKWcwo+AXC4262W+J6q+ma62G4Wiyoe+2Q53Ey36yoi82i6X+7IpnIR/GVBOG42+8vV8u57JY4AF8Az+6+y+PBf7x+P28+Md3N8PR/PjcnD63JtULBX56Lk/z+eXP/ztrPiem4qIWYH/hBQ7rLIQFng+X5NhBv5QfiMEnhOQFrnBD6XtI+AgAA8gARgAVjAADGAAuZAgIudH0Qx6aAKvgMaAB/gMaAM/g7FcYxi6AE/AgA/wAJ6aAAggImACQg6YcYAaBCybJMYsRmgBjQCpMaqSpSlVpJVYAEV8XGrHSYAW+DpkZ0kcbxDGAC3wnbyQ0ABpDQxvJynqZpGmLoA1fAxt5GZOTGgAnQEFcb+ZZ6aAHfgEUxpFGaAAKAgBsgFW8WxVWclpXJi6RTF6ahX5GaAOoggCaIIu+WADogVbZXGlVxoAychWTVtmMdJnbeb5YXNQxHXZVlI6AEhA6b9RmHUlYAGiDDVF1U5Y5tmAPognUZtVlXNQ0AW5WFYWGTGK1retvEyVtq1xilcbSYA2iD0YAeiDjYtQ0HU5gAQQLd81Vq1VabdtR3puNi5dRNjUfY9X35fRgBaIN90UQxm+0fTGx27VVFXpptW10WlgBt8GjaVeT58Nhd1kO4+tPVVoA2+BqapZMxoAOKCAD0ggD9IIAoyCAH0ggDtIIArSDrTZI6hTthMZoAWCDpvZsMADEpcLMZs0zgAjIIAQyCAJMggDYoJ2gAtILLbOAMMgGt0SJgshVWoWAJigMbG4bfC47rvGmybnb84ACzD23r4naRmWZ0YATTB887rtu3G/N8YAZDCAHXwQeADgwfF64uVlc4Tx1w3zgD34AnGZJ3lKNhYAQBCdsndGAGAg6dOfnWe7RnOcMfFiWLsXVYZ9XWdlyO+cxvZEtN+m1cjtXTEN528efTGHeWT3nYmaZfN87Xg/j7XVcz+tw8Zh3WdTxmkjYHRC9xjPk9b7XTEr/Rm8xiAAC+QA==@EAApAIABfwb/e/9//284fg==";
@@ -222,7 +216,7 @@ export let highSteelArmsCuffs: BC_AppearanceItem = {
         Description: "Capatable of generating it's own magnetic field to interact with a variety of devices",
         Private: true,
         MemberNumber: 1,
-        MemberName: "Dairy Blue Farms",
+        MemberName: "Azure Corporation",
         Property: "Normal",
         Color: "",
         Lock: "",
@@ -241,7 +235,7 @@ export let highSteelAnkleCuffs: BC_AppearanceItem = {
         Description: "Capatable of generating it's own magnetic field to interact with a variety of devices",
         Private: true,
         MemberNumber: 1,
-        MemberName: "AzureCorp",
+        MemberName: "Azure Corporation",
         Property: "Normal",
         Color: "",
         Lock: "",
@@ -262,7 +256,7 @@ export let shinyArmBinder: BC_AppearanceItem = {
         TypeRecord: { typed: 3 },
         Private: true,
         MemberNumber: 1,
-        MemberName: "Dairy Blue Farms",
+        MemberName: "Azure Corporation",
         Property: "Normal",
         Color: "",
         Lock: "",
@@ -290,7 +284,7 @@ export let latexRespirator: BC_AppearanceItem = {
         Item:"LatexRespirator",
         ItemProperty:{},
         Lock:"",
-        MemberName:"Dairy Blue Farms",
+        MemberName:"Azure Corporation",
         MemberNumber:2,
         Name: "Enhancer pump (production)",
         Private:true,

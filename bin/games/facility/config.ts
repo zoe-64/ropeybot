@@ -43,7 +43,7 @@ export const defaultXP: XPConfig = {
   baseXP: 100,
   scaling: 1.5,
   energyPerLevel: 10,
-  levelAnnouncements: [25, 50, 100],
+  levelAnnouncements: [10, 25, 50, 100],
 };
 
 export const classXP: Partial<Record<number, XPConfig>> = {

@@ -20,14 +20,14 @@ export function createEconomyModule(initial: number, repo: PlayerRepo, messages:
 
     add(amount) {
       this.state.currency += amount;
-      messages.whisper(player.identity.id, `(Balance updated: ${this.state.currency} ACs)`);
+      //messages.whisper(player.identity.id, `(Balance updated: ${this.state.currency} ACs)`);
       void repo.updateCurrency(player.identity.id, this.state.currency);
     },
 
     spend(amount) {
       if (this.state.currency < amount) return false;
       this.state.currency -= amount;
-      messages.whisper(player.identity.id, `(Balance updated: ${this.state.currency} ACs)`);
+      //messages.whisper(player.identity.id, `(Balance updated: ${this.state.currency} ACs)`);
       void repo.updateCurrency(player.identity.id, this.state.currency);
       return true;
     },
