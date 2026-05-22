@@ -120,7 +120,7 @@ export class GasIntake implements Skill {
       console.log(`GASINTAKE: ${name} reward modifier ${this.rewardModifier}`);
       this.successRateModifier = 0;
       this.rewardModifier = 1;
-      return { energy: this.energyCost, reward };
+      return { energy: this.energyCost, reward, outcome: "success" };
     } else {
       this.gasNumb = true;
       this.scoreIncrease *= -this.failureLossMultiplier;
@@ -139,7 +139,7 @@ export class GasIntake implements Skill {
       // reset knobs before returning on failure
       this.successRateModifier = 0;
       this.rewardModifier = 1;
-      return { energy: this.energyCost, reward: this.scoreIncrease, effects: [{ type: "EMIT_EVENT", event: evt }] };
+      return { energy: this.energyCost, reward: this.scoreIncrease, outcome: "fail", effects: [{ type: "EMIT_EVENT", event: evt }] };
     }
   }
 

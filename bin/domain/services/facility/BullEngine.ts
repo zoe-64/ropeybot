@@ -5,12 +5,13 @@ import { BullProgressEvent } from "../../moduleTypes/Bull.types";
 import { BullModule } from "../../modules/bull";
 import { ScoringModule } from "../../modules/scoring";
 import { PlayerCore } from "../../core/PlayerCore";
+import { SkillOutcome } from "../../skills/Skill.types";
 
 type SkillUsedPayload = {
   playerId: number;
   skillName: string;
   reward?: number;
-  success?: boolean;
+  outcome?: SkillOutcome;
 };
 
 type BullRewardPayload = {
@@ -36,10 +37,11 @@ export class BullEngine {
       if (typeof payload?.playerId !== "number") return;
       const bull = this.getBull(payload.playerId);
       if (!bull) return;
-      if (payload.success === false) {
+      const outcome = payload.outcome ?? "success";
+      if (outcome === "fail") {
         bull.removeCharge(5);
       } else {
-        const info = bull.addCharge(5);
+        const info = bull.addCharge(outcome === "critical" ? 10 : 5);
         this.handleChargeMessages(payload.playerId, bull, info);
       }
       this.publishProgress(payload.playerId, bull);

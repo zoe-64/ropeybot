@@ -1,11 +1,12 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
 import { DomainEvent } from "../ports/DomainEvenPort";
+import { SkillOutcome } from "../skills/Skill.types";
 
 export type SkillUseEntry = {
   skillName: string;
   energySpent: number;
   reward: number;
-  success: boolean;
+  outcome: SkillOutcome;
   logPayload?: Record<string, unknown>;
 };
 
@@ -34,7 +35,7 @@ export function createSkillLogModule(): SkillLogModule {
           skillName: payload.skillName ?? "<unknown>",
           energySpent: payload.energySpent ?? 0,
           reward: payload.reward ?? 0,
-          success: payload.success ?? true,
+          outcome: payload.outcome ?? "success",
           logPayload: payload.logPayload
         });
       });

@@ -64,7 +64,7 @@ export class SteadySelf implements Skill {
 
     use(player: PlayerCore): SkillResult {
         const modifiers = player.tryGet<ModifierModule>("modifiers");
-        if (!modifiers) return { energy: this.energyCost, reward: 0, success: false };
+        if (!modifiers) return { energy: this.energyCost, reward: 0, outcome: "fail" };
 
         modifiers.addMany(fromSkillModifier({
             energyCostMultiplier: this.energyReductionMultiplier,

@@ -1,5 +1,6 @@
 import { PlayerCore, PlayerModule } from "../core/PlayerCore";
 import { DomainEvent } from "../ports/DomainEvenPort";
+import { SkillOutcome } from "../skills/Skill.types";
 import { ModifierModule } from "./modifiers";
 
 export type OutcomeChances = { positive: number; negative: number };
@@ -57,14 +58,15 @@ export function createQualityModule(initialQuality = 50): QualityModule {
       const bus = player.ctx.bus;
       unsubscribers.push(bus.subscribe("player:skill.used", (evt: DomainEvent) => {
         if (!player) return;
-        const payload = evt.payload as { playerId: number; success?: boolean; skillName?: string };
+        const payload = evt.payload as { playerId: number; outcome?: SkillOutcome; skillName?: string };
         if (payload?.playerId !== player.identity.id) return;
-        const baseDelta = payload.success === false ? -5 : 5;
+        const outcome = payload.outcome ?? "success";
+        const baseDelta = outcome === "fail" ? -5 : outcome === "critical" ? 10 : 5;
         const scaled = getModifiers()?.resolveNumber("quality.delta", baseDelta, {
           playerId: player.identity.id,
           actionType: "skillUse",
           skillName: payload.skillName,
-          success: payload.success ?? true,
+          outcome,
         }) ?? baseDelta;
         mod.adjustQuality(scaled);
       }));

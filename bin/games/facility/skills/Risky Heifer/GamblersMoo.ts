@@ -61,6 +61,7 @@ export class GamblersMoo implements Skill {
             : isFailure
                 ? baseReward * this.failureMultiplier
                 : baseReward;
+        const outcome = isCritical ? "critical" : isFailure ? "fail" : "success";
 
         const name = player.identity.nickname ?? player.identity.name;
         if (isCritical) {
@@ -71,7 +72,7 @@ export class GamblersMoo implements Skill {
             console.log(`${name} triggered GamblersMoo NORMAL (${reward.toFixed(2)} milk, roll ${playerRoll})`);
         }
 
-        return { energy: this.computeEnergy(player), reward };
+        return { energy: this.computeEnergy(player), reward, outcome };
     }
 
     computeEnergy(player: PlayerCore): number {

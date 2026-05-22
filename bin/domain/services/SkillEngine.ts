@@ -4,7 +4,7 @@ import { ModifierModule } from "../modules/modifiers";
 import { ScoringModule } from "../modules/scoring";
 import { SkillsModule } from "../modules/skills";
 import { IncomingMessage } from "../ports/MessagePort";
-import { SkillEffect } from "../skills/Skill.types";
+import { SkillEffect, SkillOutcome } from "../skills/Skill.types";
 
 export class SkillEngine {
   /**
@@ -47,10 +47,11 @@ export class SkillEngine {
       if (!skill.canExecute(player)) continue;
 
       const base = skill.use(player);
-      const success = base.success ?? true;
-      const finalReward = modifiers.resolveNumber("skill.reward", base.reward ?? 0, { ...resolveCtx, success });
-      const finalEffects = modifiers.resolveEffects("skill.effect", base.effects ?? [], resolveCtx);
-      modifiers.consumeUses(resolveCtx);
+      const outcome: SkillOutcome = base.outcome ?? "success";
+      const outcomeCtx = { ...resolveCtx, outcome };
+      const finalReward = modifiers.resolveNumber("skill.reward", base.reward ?? 0, outcomeCtx);
+      const finalEffects = modifiers.resolveEffects("skill.effect", base.effects ?? [], outcomeCtx);
+      modifiers.consumeUses(outcomeCtx);
 
       player.ctx.bus.publish({
         type: "player:skill.used",
@@ -59,7 +60,7 @@ export class SkillEngine {
           skillName: skill.skillName,
           energySpent: effEnergy,
           reward: finalReward,
-          success,
+          outcome,
           ...(base.logPayload ?? {}),
         },
       });

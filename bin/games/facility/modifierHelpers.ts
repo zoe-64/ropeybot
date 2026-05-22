@@ -130,7 +130,7 @@ export function fromQualityModifier(
       target: "quality.delta",
       operation: { type: "add", value: modifier.successAdd },
       duration,
-      filters: { success: true, actionTypes: ["skillUse"] },
+      filters: { outcomes: ["success", "critical"], actionTypes: ["skillUse"] },
     });
   }
   if (modifier.failAdd != null) {
@@ -142,7 +142,7 @@ export function fromQualityModifier(
       target: "quality.delta",
       operation: { type: "add", value: modifier.failAdd },
       duration,
-      filters: { failure: true, actionTypes: ["skillUse"] },
+      filters: { outcomes: ["fail"], actionTypes: ["skillUse"] },
     });
   }
   if (modifier.successMult != null) {
@@ -154,7 +154,7 @@ export function fromQualityModifier(
       target: "quality.delta",
       operation: { type: "mult", value: modifier.successMult },
       duration,
-      filters: { success: true, actionTypes: ["skillUse"] },
+      filters: { outcomes: ["success", "critical"], actionTypes: ["skillUse"] },
     });
   }
   if (modifier.failMult != null) {
@@ -166,7 +166,7 @@ export function fromQualityModifier(
       target: "quality.delta",
       operation: { type: "mult", value: modifier.failMult },
       duration,
-      filters: { failure: true, actionTypes: ["skillUse"] },
+      filters: { outcomes: ["fail"], actionTypes: ["skillUse"] },
     });
   }
 

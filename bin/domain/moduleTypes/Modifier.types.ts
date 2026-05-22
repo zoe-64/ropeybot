@@ -1,5 +1,5 @@
 import type { PlayerCore } from "../core/PlayerCore";
-import { SkillEffect } from "../skills/Skill.types";
+import { SkillEffect, SkillOutcome } from "../skills/Skill.types";
 
 export type ModifierTarget =
   | "skill.energy"
@@ -26,8 +26,7 @@ export type ModifierFilters = {
   skillWhitelist?: string[];
   skillBlacklist?: string[];
   actionTypes?: string[];
-  success?: boolean;
-  failure?: boolean;
+  outcomes?: SkillOutcome[];
 };
 
 export type ModifierNumericOperation =
@@ -66,5 +65,5 @@ export type ModifierResolveContext = {
   playerId: number;
   skillName?: string;
   actionType?: string;
-  success?: boolean;
+  outcome?: SkillOutcome;
 };

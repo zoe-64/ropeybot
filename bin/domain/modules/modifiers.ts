@@ -37,8 +37,7 @@ function matchesFilters(modifier: ModifierDefinition, ctx: ModifierResolveContex
   if (filters.skillWhitelist?.length && (!ctx.skillName || !filters.skillWhitelist.includes(ctx.skillName))) return false;
   if (filters.skillBlacklist?.length && ctx.skillName && filters.skillBlacklist.includes(ctx.skillName)) return false;
   if (filters.actionTypes?.length && (!ctx.actionType || !filters.actionTypes.includes(ctx.actionType))) return false;
-  if (filters.success === true && ctx.success !== true) return false;
-  if (filters.failure === true && ctx.success !== false) return false;
+  if (filters.outcomes?.length && (!ctx.outcome || !filters.outcomes.includes(ctx.outcome))) return false;
   return true;
 }
 
