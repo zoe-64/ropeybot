@@ -716,6 +716,7 @@ ${forfeitsString()}
         if (!sender.IsRoomAdmin())
             purchases = purchases.filter(
                 (p) =>
+                    SERVICES[p.service].offeringPlayer &&
                     SERVICES[p.service].offeringPlayer === sender.MemberNumber,
             );
 
@@ -795,6 +796,7 @@ ${forfeitsString()}
         if (!sender.IsRoomAdmin())
             purchases = purchases.filter(
                 (p) =>
+                    SERVICES[p.service].offeringPlayer &&
                     SERVICES[p.service].offeringPlayer === sender.MemberNumber,
             );
 
