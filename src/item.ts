@@ -338,7 +338,7 @@ export function getAssetDef(desc: BC_AppearanceItem): AssetDefinition | null {
     const grp = AssetFemale3DCG.find((g) => g.Group === desc.Group);
     if (!grp) {
         // We could add support for the echo slots, but until then, don't spam about them
-        if (!desc.Group.includes("Luzi"))
+        if (!desc.Group.includes("Luzi") && !desc.Group.includes("外观"))
             console.warn("Invalid item group: " + desc.Group);
         return null;
     }

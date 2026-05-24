@@ -38,6 +38,7 @@ interface Purchase {
     time: number;
     service: string;
     redeemed: boolean;
+    refunded: boolean;
 }
 
 export class CasinoStore {
@@ -121,11 +122,26 @@ export class CasinoStore {
         await this.db.collection<Purchase>("purchases").insertOne(purchase);
     }
 
+    public async savePurchace(purchase: Purchase): Promise<void> {
+        await this.init();
+        this.db
+            .collection<Purchase>("purchases")
+            .updateOne(
+                {
+                    memberNumber: purchase.memberNumber,
+                    time: purchase.time,
+                    service: purchase.service,
+                },
+                { $set: purchase },
+                { upsert: true },
+            );
+    }
+
     public async getUnredeemedPurchases(): Promise<Purchase[]> {
         await this.init();
         return this.db
             .collection<Purchase>("purchases")
-            .find({ redeemed: false })
+            .find({ redeemed: false, refunded: false })
             .toArray();
     }
 }

@@ -504,11 +504,6 @@ export class RouletteGame implements Game {
 
             this.clearBetsForPlayer(sender.MemberNumber);
             this.conn.SendMessage(
-                "Whisper",
-                "Bet cancelled.",
-                sender.MemberNumber,
-            );
-            this.conn.SendMessage(
                 "Chat",
                 `${sender.Name} cancelled their bet.`,
             );
@@ -548,11 +543,6 @@ export class RouletteGame implements Game {
                 }
 
                 this.clearBetForPlayer(sender.MemberNumber, index);
-                this.conn.SendMessage(
-                    "Whisper",
-                    "Bet cancelled.",
-                    sender.MemberNumber,
-                );
                 this.conn.SendMessage(
                     "Chat",
                     `${sender.Name} cancelled their bet on ${bet.kind === "single" ? bet.number : bet.kind}.`,

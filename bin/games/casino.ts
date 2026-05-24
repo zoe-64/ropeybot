@@ -151,6 +151,11 @@ export class Casino {
         this.commandParser.register("game", this.onCommandGame);
         this.commandParser.register("scoreboard", this.onCommandScoreboard);
         this.commandParser.register("color", this.onCommandColor);
+        this.commandParser.register("refund", this.onCommandRefund);
+        this.commandParser.register(
+            "markcompleted",
+            this.onCommandMarkCompleted,
+        );
 
         this.conn.setItemPermission(ItemPermissionLevel.OwnerLoverWhitelist);
     }
@@ -663,13 +668,163 @@ ${forfeitsString()}
                 time: Date.now(),
                 service: serviceName,
                 redeemed: false,
+                refunded: false,
             });
 
             this.conn.SendMessage(
                 "Chat",
-                `${sender} has bought a voucher for ${service.name}! Please contact Lilly to redeem your service.`,
+                `${sender} has bought a voucher for ${service.name}! Please contact ${service.offeringPlayer ? `Player with Member Number ${service.offeringPlayer}` : "Lilly"} to redeem your service.`,
             );
         }
+    };
+
+    private onCommandMarkCompleted = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (
+            !sender.IsRoomAdmin() &&
+            !Object.values(SERVICES).some(
+                (s) => s.offeringPlayer === sender.MemberNumber,
+            )
+        ) {
+            this.conn.reply(
+                msg,
+                "Sorry, you need to be an admin or offer a service",
+            );
+            return;
+        }
+
+        if (args.length < 1) {
+            this.conn.reply(
+                msg,
+                "Please add the number of whichever Voucher you want to mark as completed",
+            );
+            return;
+        }
+        if (!args[0].match(/^[0-9]+$/)) {
+            this.conn.reply(
+                msg,
+                "Please add the number of whichever Voucher you want to mark as completed",
+            );
+            return;
+        }
+
+        let index: number = parseInt(args[0]);
+        let purchases = await this.store.getUnredeemedPurchases();
+        if (!sender.IsRoomAdmin())
+            purchases = purchases.filter(
+                (p) =>
+                    SERVICES[p.service].offeringPlayer === sender.MemberNumber,
+            );
+
+        if (purchases.length === 0) {
+            this.conn.reply(msg, "No vouchers outstanding");
+            return;
+        } else if (purchases.length < index) {
+            this.conn.reply(
+                msg,
+                "The voucher you want to mark as completed does not exist",
+            );
+            return;
+        }
+
+        let purchase = purchases[index - 1];
+        await this.store.savePurchace({
+            memberNumber: purchase.memberNumber,
+            memberName: purchase.memberName,
+            time: purchase.time,
+            service: purchase.service,
+            redeemed: true,
+            refunded: false,
+        });
+        if (SERVICES[purchase.service].offeringPlayer) {
+            let offeringPlayer = await this.store.getPlayer(
+                SERVICES[purchase.service].offeringPlayer,
+            );
+            offeringPlayer.credits += SERVICES[purchase.service].value;
+            await this.store.savePlayer(offeringPlayer);
+            this.conn.reply(
+                msg,
+                `The voucher for ${SERVICES[purchase.service].name} has been marked as completed! The offering Player has been given the coins.`,
+            );
+        } else {
+            this.conn.reply(
+                msg,
+                `${purchase.memberName}'s service has been marked as completed!`,
+            );
+        }
+    };
+
+    private onCommandRefund = async (
+        sender: API_Character,
+        msg: BC_Server_ChatRoomMessage,
+        args: string[],
+    ) => {
+        if (
+            !sender.IsRoomAdmin() &&
+            !Object.values(SERVICES).some(
+                (s) => s.offeringPlayer === sender.MemberNumber,
+            )
+        ) {
+            this.conn.reply(
+                msg,
+                "Sorry, you need to be an admin or offer a service",
+            );
+            return;
+        }
+
+        if (args.length < 1) {
+            this.conn.reply(
+                msg,
+                "Please add the number of whichever Voucher you want to refund",
+            );
+            return;
+        }
+        if (!args[0].match(/^[0-9]+$/)) {
+            this.conn.reply(
+                msg,
+                "Please add the number of whichever Voucher you want to refund",
+            );
+            return;
+        }
+
+        let index: number = parseInt(args[0]);
+        let purchases = await this.store.getUnredeemedPurchases();
+        if (!sender.IsRoomAdmin())
+            purchases = purchases.filter(
+                (p) =>
+                    SERVICES[p.service].offeringPlayer === sender.MemberNumber,
+            );
+
+        if (purchases.length === 0) {
+            this.conn.reply(msg, "No vouchers outstanding");
+            return;
+        } else if (purchases.length < index) {
+            this.conn.reply(
+                msg,
+                "The voucher you want to refund does not exist",
+            );
+            return;
+        }
+
+        let purchase = purchases[index - 1];
+        let player = await this.store.getPlayer(purchase.memberNumber);
+        await this.store.savePurchace({
+            memberNumber: purchase.memberNumber,
+            memberName: purchase.memberName,
+            time: purchase.time,
+            service: purchase.service,
+            redeemed: false,
+            refunded: true,
+        });
+        player.credits += SERVICES[purchase.service].value;
+        await this.store.savePlayer(player);
+        this.conn.SendMessage(
+            "Chat",
+            `${purchase.memberName} has been refunded their voucher for ${SERVICES[purchase.service].name}`,
+        );
     };
 
     private onCommandVouchers = async (
@@ -677,8 +832,16 @@ ${forfeitsString()}
         msg: BC_Server_ChatRoomMessage,
         args: string[],
     ) => {
-        if (!sender.IsRoomWhitelistedOrAdmin()) {
-            this.conn.reply(msg, "Sorry, you need to be an admin");
+        if (
+            !sender.IsRoomAdmin() &&
+            !Object.values(SERVICES).some(
+                (s) => s.offeringPlayer === sender.MemberNumber,
+            )
+        ) {
+            this.conn.reply(
+                msg,
+                "Sorry, you need to be an admin or offer a service",
+            );
             return;
         }
 
@@ -687,17 +850,39 @@ ${forfeitsString()}
             this.conn.reply(msg, "No vouchers outstanding");
             return;
         }
-        this.conn.reply(
-            msg,
-            purchases
-                .map((p) => {
-                    if (SERVICES[p.service] === undefined) {
-                        return `${p.memberName} (${p.memberNumber}): Unknown service ${p.service}`;
-                    }
-                    return `${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
-                })
-                .join("\n"),
-        );
+        let index: number = 1;
+        if (sender.IsRoomAdmin()) {
+            this.conn.reply(
+                msg,
+                purchases
+                    .map((p) => {
+                        if (SERVICES[p.service] === undefined) {
+                            return `(${index++}) ${p.memberName} (${p.memberNumber}): Unknown service ${p.service}`;
+                        }
+                        return `(${index++}) ${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
+                    })
+                    .join("\n"),
+            );
+        } else {
+            this.conn.reply(
+                msg,
+                purchases
+                    .map((p) => {
+                        if (
+                            SERVICES[p.service] === undefined ||
+                            !SERVICES[p.service].offeringPlayer ||
+                            SERVICES[p.service].offeringPlayer !==
+                                sender.MemberNumber
+                        )
+                            return;
+                        else {
+                            return `(${index++}) ${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
+                        }
+                    })
+                    .filter((p) => p !== undefined)
+                    .join("\n"),
+            );
+        }
     };
 
     private onCommandGive = async (

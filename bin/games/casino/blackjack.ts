@@ -67,7 +67,7 @@ const FULLBLACKJACKHELP = `${BLACKJACKHELP}
 ${BLACKJACKCOMMANDS}
 `;
 
-const TIME_UNTIL_DEAL_MS = 35000;
+const TIME_UNTIL_DEAL_MS = 45000;
 // const TIME_UNTIL_DEAL_MS = 6000;
 const BET_CANCEL_THRESHOLD_MS = 1000;
 const AUTO_STAND_TIMEOUT_MS = 45000;
@@ -1208,11 +1208,6 @@ export class BlackjackGame implements Game {
 
             this.clearBetsForPlayer(sender.MemberNumber);
             this.conn.SendMessage(
-                "Whisper",
-                "Bet cancelled.",
-                sender.MemberNumber,
-            );
-            this.conn.SendMessage(
                 "Chat",
                 `${sender.Name} cancelled their bet.`,
             );
@@ -1252,11 +1247,6 @@ export class BlackjackGame implements Game {
                 }
 
                 this.clearBetForPlayer(sender.MemberNumber, index);
-                this.conn.SendMessage(
-                    "Whisper",
-                    "Bet cancelled.",
-                    sender.MemberNumber,
-                );
                 this.conn.SendMessage(
                     "Chat",
                     `${sender.Name} cancelled their bet for ${bet.stakeForfeit ?? bet.stake + " chips"}.`,

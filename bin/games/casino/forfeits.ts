@@ -224,6 +224,7 @@ interface Service {
     value?: number;
     priceString?: string;
     commandExample?: string;
+    offeringPlayer?: number;
 }
 
 // TODO buy outfits?
@@ -263,6 +264,7 @@ export const SERVICES: Record<string, Service> = {
         name: "Outfit from Lisa",
         description: "Let Lisa (201046) make an outfit just for you~",
         value: 500,
+        offeringPlayer: 201046,
     },
     /*"massage": {
         name: "Pixie Massage",
