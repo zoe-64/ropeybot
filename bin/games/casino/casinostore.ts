@@ -124,17 +124,15 @@ export class CasinoStore {
 
     public async savePurchace(purchase: Purchase): Promise<void> {
         await this.init();
-        this.db
-            .collection<Purchase>("purchases")
-            .updateOne(
-                {
-                    memberNumber: purchase.memberNumber,
-                    time: purchase.time,
-                    service: purchase.service,
-                },
-                { $set: purchase },
-                { upsert: true },
-            );
+        this.db.collection<Purchase>("purchases").updateOne(
+            {
+                memberNumber: purchase.memberNumber,
+                time: purchase.time,
+                service: purchase.service,
+            },
+            { $set: purchase },
+            { upsert: true },
+        );
     }
 
     public async getUnredeemedPurchases(): Promise<Purchase[]> {
