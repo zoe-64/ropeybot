@@ -552,7 +552,7 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
             !this.ignoreMsgs.includes(msg.Content) &&
             msg.Sender !== this.Player.MemberNumber
         ) {
-            // console.log("chat room message", msg);
+            console.log("chat room message", msg);
         }
 
         if (!msg.Sender) return;

@@ -724,7 +724,7 @@ ${forfeitsString()}
         if (purchases.length === 0) {
             this.conn.reply(msg, "No vouchers outstanding");
             return;
-        } else if (purchases.length < index) {
+        } else if (purchases.length < index || index < 1) {
             this.conn.reply(
                 msg,
                 "The voucher you want to mark as completed does not exist",
@@ -805,7 +805,7 @@ ${forfeitsString()}
         if (purchases.length === 0) {
             this.conn.reply(msg, "No vouchers outstanding");
             return;
-        } else if (purchases.length < index) {
+        } else if (purchases.length < index || index < 1) {
             this.conn.reply(
                 msg,
                 "The voucher you want to refund does not exist",
@@ -849,44 +849,30 @@ ${forfeitsString()}
             return;
         }
 
-        const purchases = await this.store.getUnredeemedPurchases();
+        let purchases = await this.store.getUnredeemedPurchases();
+        if (!sender.IsRoomAdmin())
+            purchases = purchases.filter(
+                (p) =>
+                    SERVICES[p.service] &&
+                    SERVICES[p.service].offeringPlayer &&
+                    SERVICES[p.service].offeringPlayer === sender.MemberNumber,
+            );
         if (purchases.length === 0) {
             this.conn.reply(msg, "No vouchers outstanding");
             return;
         }
         let index: number = 1;
-        if (sender.IsRoomAdmin()) {
-            this.conn.reply(
-                msg,
-                purchases
-                    .map((p) => {
-                        if (SERVICES[p.service] === undefined) {
-                            return `(${index++}) ${p.memberName} (${p.memberNumber}): Unknown service ${p.service}`;
-                        }
-                        return `(${index++}) ${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
-                    })
-                    .join("\n"),
-            );
-        } else {
-            this.conn.reply(
-                msg,
-                purchases
-                    .map((p) => {
-                        if (
-                            SERVICES[p.service] === undefined ||
-                            !SERVICES[p.service].offeringPlayer ||
-                            SERVICES[p.service].offeringPlayer !==
-                                sender.MemberNumber
-                        )
-                            return;
-                        else {
-                            return `(${index++}) ${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
-                        }
-                    })
-                    .filter((p) => p !== undefined)
-                    .join("\n"),
-            );
-        }
+        this.conn.reply(
+            msg,
+            purchases
+                .map((p) => {
+                    if (SERVICES[p.service] === undefined) {
+                        return `(${index++}) ${p.memberName} (${p.memberNumber}): Unknown service ${p.service}`;
+                    }
+                    return `(${index++}) ${p.memberName} (${p.memberNumber}): ${SERVICES[p.service].name}`;
+                })
+                .join("\n"),
+        );
     };
 
     private onCommandGive = async (
