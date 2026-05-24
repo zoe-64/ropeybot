@@ -253,6 +253,14 @@ export const SERVICES: Record<string, Service> = {
         name: "Sit in Lilly's lap",
         description: "Enjoy sitting in Lilly's lap for an hour.",
         value: 20000,
+        offeringPlayer: 35982,
+    },
+    kittylilly: {
+        name: "Kitty Lilly",
+        description:
+            "Let Lilly wear both a pair of cat ears and a tail for an hour.",
+        value: 15000,
+        offeringPlayer: 35982,
     },
     /* sessionlilly: {
         name: "Session with Lilly",
