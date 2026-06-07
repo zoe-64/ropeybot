@@ -108,6 +108,12 @@ export type SongModule = PlayerModule & {
 
 const songSourcePrefix = "song:";
 const SONG_STACK_CAP = 3;
+const songVariantOrder: SongVariant[] = ["S", "L", "XL"];
+const songVariantRank: Record<SongVariant, number> = {
+  S: 0,
+  L: 1,
+  XL: 2,
+};
 
 function extraStacks(level: number): number {
   return Math.max(0, Math.min(SONG_STACK_CAP, level) - 1);
@@ -183,6 +189,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
   };
 
   const recipes = songBook.slice().sort((a, b) => b.pattern.length - a.pattern.length);
+  const recipeById = new Map(recipes.map((recipe) => [recipe.id, recipe] as const));
 
   const getBufferCapacity = () => {
     const classing = player?.tryGet<any>("classing");
@@ -217,6 +224,37 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
     return "S";
   };
 
+  const resolveRecipeVariantData = (recipe: SongRecipe, preferredVariant: SongVariant): { variant: SongVariant; data: SongRecipeVariant } => {
+    const preferredIndex = songVariantRank[preferredVariant];
+    const searchOrder = [
+      ...songVariantOrder.slice(0, preferredIndex + 1).reverse(),
+      ...songVariantOrder.slice(preferredIndex + 1),
+    ];
+
+    for (const variant of searchOrder) {
+      const data = recipe.variants?.[variant];
+      if (data) return { variant, data };
+    }
+
+    throw new Error(`Song recipe ${recipe.id} has no usable variant data.`);
+  };
+
+  const createResolvedSong = (recipe: SongRecipe, variant: SongVariant, data: SongRecipeVariant): ResolvedSong => ({
+    ...data,
+    id: recipe.id,
+    name: recipe.name,
+    kind: recipe.kind,
+    scope: recipe.scope,
+    variant,
+    pattern: recipe.pattern.slice(),
+    notePattern: recipe.notePattern?.slice(),
+  });
+
+  const resolveRecipeAtVariant = (recipe: SongRecipe, variant: SongVariant): ResolvedSong => {
+    const match = resolveRecipeVariantData(recipe, variant);
+    return createResolvedSong(recipe, match.variant, match.data);
+  };
+
   const resolveRecipe = (recipe: SongRecipe, notes: SongNote[]): ResolvedSong => {
     if (recipe.kind === "aria") {
       if (!recipe.ariaEffect) {
@@ -234,22 +272,36 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
       };
     }
 
-    const variant = resolveVariant(notes);
-    const data = recipe.variants[variant] ?? recipe.variants.L ?? recipe.variants.S;
-    if (!data) {
-      throw new Error(`Song recipe ${recipe.id} has no usable variant data.`);
-    }
+    return resolveRecipeAtVariant(recipe, resolveVariant(notes));
+  };
 
-    return {
-      ...data,
-      id: recipe.id,
-      name: recipe.name,
-      kind: recipe.kind,
-      scope: recipe.scope,
-      variant,
-      pattern: recipe.pattern.slice(),
-      notePattern: recipe.notePattern?.slice(),
-    };
+  const promoteVariant = (variant: SongVariant): SongVariant => {
+    if (variant === "S") return "L";
+    return "XL";
+  };
+
+  const lowerVariant = (left: SongVariant, right: SongVariant): SongVariant => (
+    songVariantRank[left] <= songVariantRank[right] ? left : right
+  );
+
+  const mergeVariants = (left: SongVariant, right: SongVariant): SongVariant => (
+    left === right ? promoteVariant(left) : lowerVariant(left, right)
+  );
+
+  const createActiveSong = (resolved: ResolvedSong, remainingShifts = resolved.durationShifts, stackLevel = 1): ActiveSong => ({
+    ...resolved,
+    pattern: resolved.pattern.slice(),
+    notePattern: resolved.notePattern?.slice(),
+    remainingShifts,
+    performedAt: Date.now(),
+    stackLevel,
+  });
+
+  const overwriteActiveSong = (target: ActiveSong, next: ActiveSong) => {
+    Object.assign(target, next, {
+      pattern: next.pattern.slice(),
+      notePattern: next.notePattern?.slice(),
+    });
   };
 
   const syncActiveEffects = (preservedUses?: Map<string, number | undefined>) => {
@@ -365,58 +417,36 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
           .sort((a, b) => a.performedAt - b.performedAt);
         if (activeMelodies.length >= getMelodyCapacity()) {
           const replaced = activeMelodies[0];
-          replaced.variant = resolved.variant;
-          replaced.summary = resolved.summary;
-          replaced.durationShifts = resolved.durationShifts;
-          replaced.skillModifiers = resolved.skillModifiers;
-          replaced.qualityModifiers = resolved.qualityModifiers;
-          replaced.energyRestore = resolved.energyRestore;
-          replaced.bullCharge = resolved.bullCharge;
-          replaced.scoreBonus = resolved.scoreBonus;
-          replaced.globalEventId = resolved.globalEventId;
-          replaced.remainingShifts = resolved.durationShifts;
-          replaced.performedAt = Date.now();
-          replaced.stackLevel = 1;
-          replaced.id = resolved.id;
-          replaced.name = resolved.name;
-          replaced.scope = resolved.scope;
-          replaced.pattern = resolved.pattern.slice();
+          overwriteActiveSong(replaced, createActiveSong(resolved));
           syncActiveEffects();
           return replaced;
         }
       }
 
-      const created: ActiveSong = {
-        ...resolved,
-        remainingShifts: resolved.durationShifts,
-        performedAt: Date.now(),
-        stackLevel: 1,
-      };
+      const created = createActiveSong(resolved);
       state.activeSongs.push(created);
       syncActiveEffects();
       return created;
     }
 
-    if (existing.variant === resolved.variant) {
-      existing.remainingShifts += 1;
-      existing.performedAt = Date.now();
-      existing.stackLevel = Math.min(SONG_STACK_CAP, existing.stackLevel + 1);
+    const recipe = recipeById.get(resolved.id);
+    if (!recipe || !existing.variant || !resolved.variant) {
+      overwriteActiveSong(existing, createActiveSong(resolved, existing.remainingShifts + 1, 1));
       syncActiveEffects();
       return existing;
     }
 
-    existing.variant = resolved.variant;
-    existing.summary = resolved.summary;
-    existing.durationShifts = resolved.durationShifts;
-    existing.skillModifiers = resolved.skillModifiers;
-    existing.qualityModifiers = resolved.qualityModifiers;
-    existing.energyRestore = resolved.energyRestore;
-    existing.bullCharge = resolved.bullCharge;
-    existing.scoreBonus = resolved.scoreBonus;
-    existing.globalEventId = resolved.globalEventId;
-    existing.remainingShifts = resolved.durationShifts;
-    existing.performedAt = Date.now();
-    existing.stackLevel = 1;
+    const mergedVariant = mergeVariants(existing.variant, resolved.variant);
+    const mergedResolved = resolveRecipeAtVariant(recipe, mergedVariant);
+    const nextStackLevel = existing.variant === resolved.variant
+      ? Math.min(SONG_STACK_CAP, existing.stackLevel + 1)
+      : 1;
+
+    overwriteActiveSong(existing, createActiveSong(
+      mergedResolved,
+      existing.remainingShifts + 1,
+      nextStackLevel,
+    ));
     syncActiveEffects();
     return existing;
   };

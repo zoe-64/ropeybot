@@ -13,7 +13,7 @@ export class Sing implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Emote"];
-    triggerTokens: string[] = ["sing"];
+    triggerTokens: string[] = ["sing", "sings", "singing"];
     energyCost = 20;
     priority = 13;
 

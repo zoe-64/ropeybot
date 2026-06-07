@@ -1789,7 +1789,7 @@ export class Facility{
 
         const sourcePlayer = this.router.get(sourcePlayerId) as DairyPlayer | undefined;
         const sourceName = sourcePlayer?.getName() ?? `Player ${sourcePlayerId}`;
-        const variant = payload.variant ? ` <${payload.variant}>` : "";
+        const variant = payload.variant ? ` ${payload.variant}` : "";
         const levelText = payload.stackLevel != null ? ` level ${payload.stackLevel}` : "";
         const durationText = payload.remainingShifts != null ? ` for ${payload.remainingShifts} shift(s)` : "";
         const summaryText = payload.summary ? ` ${payload.summary}` : "";
@@ -1995,8 +1995,8 @@ export class Facility{
 
         return storedSongs
             .map((storedSong, index) => {
-                const variant = storedSong.variant ? `${storedSong.variant} ` : "";
-                return `- ${index + 1}. ${storedSong.name} <${variant.trim() || "base"}> [${this.renderSongRecipe(storedSong)}]`;
+                const variant = storedSong.variant ? ` ${storedSong.variant}` : "";
+                return `- ${index + 1}. ${storedSong.name}${variant} [${this.renderSongRecipe(storedSong)}]`;
             })
             .join("\n");
     }
@@ -2006,7 +2006,10 @@ export class Facility{
         if (!activeSongs.length) return "- none";
 
         return activeSongs
-            .map((activeSong) => `- ${activeSong.name} <${activeSong.variant ?? "base"}> [${activeSong.remainingShifts} shifts] [adjacent stations only]`)
+            .map((activeSong) => {
+                const variant = activeSong.variant ? ` ${activeSong.variant}` : "";
+                return `- ${activeSong.name}${variant} [${activeSong.remainingShifts} shifts]`;
+            })
             .join("\n");
     }
 
@@ -2015,7 +2018,10 @@ export class Facility{
         if (!activeMelodies.length) return "- none";
 
         return activeMelodies
-            .map((activeSong) => `- ${activeSong.name} [${this.renderSongRecipe(activeSong)}] [${activeSong.remainingShifts} shifts]`)
+            .map((activeSong) => {
+                const variant = activeSong.variant ? ` ${activeSong.variant}` : "";
+                return `- ${activeSong.name}${variant} [${this.renderSongRecipe(activeSong)}] [${activeSong.remainingShifts} shifts]`;
+            })
             .join("\n");
     }
 

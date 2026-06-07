@@ -12,7 +12,7 @@ export class Moo implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Chat", "Emote"];
-    triggerTokens: string[] = ["moo", "mooing", "moo"];
+    triggerTokens: string[] = ["moo", "mooing", "moos", "mooo", "moooo"];
     energyCost: number = 10;
     priority: number = 5;
 
