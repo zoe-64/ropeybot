@@ -1,3 +1,4 @@
+import { BullModifier } from "../../../domain/moduleTypes/Bull.types";
 import { AnyModifier } from "../../../domain/skills/Skill.types";
 import { QualityModifier } from "../../../domain/modules/quality";
 
@@ -16,6 +17,7 @@ export type GlobalEventDef = {
   onEndMessage?: string;
   stats?: { target: "energy" | "xp" | "economy" | "score" | "custom"; op: "add" | "mult"; value: number }[];
   skills?: { skillName?: string; modifier: AnyModifier; remainingShifts?: number }[];
+  bull?: { modifier: BullModifier; remainingShifts?: number }[];
   quality?: { playerId?: number | "*"; modifier: QualityModifier; remainingShifts?: number }[];
 };
 
@@ -121,6 +123,64 @@ export const globalEvents: GlobalEventDef[] = [
       {
         playerId: "*",
         modifier: { mult: 1.5, successMult: 1.5, failMult: 1.5 },
+        remainingShifts: 1,
+      },
+    ],
+  },
+  {
+    id: "Maus",
+    name: "Maus assault",
+    description: "Mice are siphoning milk to make cheese, all skill rewards are reduced by 50% while coporate security eliminates the treath",
+    priority: 3,
+    weight: 4,
+    durationShifts: 1,
+    onFireMessage: formatEventMessage(
+      "Maus assault",
+      "Mice are siphoning milk to make cheese, all skill rewards are reduced by 50% while coporate security eliminates the treath"
+    ),
+    onEndMessage: formatEventMessage(undefined, "Mice has been contained, production returning to nominal levels"),
+    skills: [
+      {
+        modifier: { rewardMultiplier: 0.5 },
+        remainingShifts: 1,
+      },
+    ]
+  },
+  {
+    id: "BullDown",
+    name: "Bull Market Correction",
+    description: "The bulls lose momentum, reducing bull buildup by 50% this shift.",
+    priority: 3,
+    weight: 5,
+    durationShifts: 1,
+    onFireMessage: formatEventMessage("Bull Market Correction", "The bulls lose momentum. Bull buildup is reduced by 50% this shift."),
+    onEndMessage: formatEventMessage(undefined, "The bulls recover their pace."),
+    bull: [
+      {
+        modifier: { chargeMultiplier: 0.5 },
+        remainingShifts: 1,
+      },
+    ],
+  },
+  {
+    id: "MooliticalInstability",
+    name: "Moolitical Instability",
+    description: "Markets wobble. All moo rewards are lowered by 20% and all energy costs increase by 15% this shift.",
+    priority: 3,
+    weight: 4,
+    durationShifts: 1,
+    onFireMessage: formatEventMessage(
+      "Moolitical Instability",
+      "Markets wobble. Moo rewards are lowered by 20% and all energy costs increase by 15% this shift."
+    ),
+    onEndMessage: formatEventMessage(undefined, "The market settles and production costs return to normal."),
+    skills: [
+      {
+        modifier: { rewardMultiplier: 0.8, skillWhitelist: ["Moo", "GamblersMoo", "MelodicMoo"] },
+        remainingShifts: 1,
+      },
+      {
+        modifier: { energyCostMultiplier: 1.15 },
         remainingShifts: 1,
       },
     ],

@@ -149,8 +149,8 @@ export const songBook: SongRecipe[] = [
     id: "mirror-etude-fugue",
     name: "Mirror Etude Fugue",
     kind: "melody",
-    pattern: ["self", "self", "drive"],
-    notePattern: ["purple", "purple", "red"],
+    pattern: ["self", "drive", "self"],
+    notePattern: ["purple", "red", "purple"],
     scope: "self",
     variants: {
       L: {
@@ -167,8 +167,8 @@ export const songBook: SongRecipe[] = [
     id: "stillwater-reservoir",
     name: "Stillwater Reservoir",
     kind: "melody",
-    pattern: ["guard", "self", "self"],
-    notePattern: ["lightBlue", "purple", "purple"],
+    pattern: ["self", "guard", "self"],
+    notePattern: ["purple", "lightBlue", "purple"],
     scope: "self",
     variants: {
       L: {
@@ -185,8 +185,8 @@ export const songBook: SongRecipe[] = [
     id: "ember-crescence",
     name: "Ember Crescence",
     kind: "melody",
-    pattern: ["restore", "drive", "drive"],
-    notePattern: ["green", "orange", "orange"],
+    pattern: ["drive", "restore", "drive"],
+    notePattern: ["orange", "green", "orange"],
     scope: "self",
     variants: {
       XL: {
@@ -293,8 +293,8 @@ export const songBook: SongRecipe[] = [
     id: "grand-rally",
     name: "Grand Rally",
     kind: "song",
-    pattern: ["drive", "self", "guard", "drive"],
-    notePattern: ["orange", "purple", "lightBlue", "orange"],
+    pattern: ["drive", "guard", "self", "drive"],
+    notePattern: ["orange", "lightBlue", "purple", "orange"],
     scope: "others",
     variants: {
       L: {
@@ -324,8 +324,8 @@ export const songBook: SongRecipe[] = [
     id: "sanctuary-procession",
     name: "Sanctuary Procession",
     kind: "song",
-    pattern: ["guard", "restore", "self", "self"],
-    notePattern: ["lightBlue", "green", "purple", "purple"],
+    pattern: ["guard", "self", "restore", "self"],
+    notePattern: ["lightBlue", "purple", "green", "purple"],
     scope: "others",
     variants: {
       L: {
@@ -344,8 +344,8 @@ export const songBook: SongRecipe[] = [
     id: "easing-cadence",
     name: "Easing Cadence",
     kind: "song",
-    pattern: ["restore", "drive", "self", "drive"],
-    notePattern: ["green", "orange", "purple", "orange"],
+    pattern: ["restore", "self", "drive", "drive"],
+    notePattern: ["green", "purple", "orange", "orange"],
     scope: "others",
     variants: {
       L: {
@@ -358,19 +358,6 @@ export const songBook: SongRecipe[] = [
           { modifier: { successMult: 1.12 }, remainingShifts: 3 },
         ],
       },
-    },
-  },
-  {
-    id: "coronation-anthem",
-    name: "Coronation Anthem",
-    kind: "aria",
-    pattern: ["self", "drive", "guard", "restore", "crown"],
-    scope: "others",
-    requiresGold: true,
-    ariaEffect: {
-      summary: "A crowned aria that calls a powerful room-wide boon into being.",
-      durationShifts: 1,
-      globalEventId: "Lovely",
     },
   },
 ];

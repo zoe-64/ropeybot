@@ -1678,6 +1678,21 @@ export class Facility{
                 })));
             }
 
+            for (const [index, bullModifier] of (evt.bull ?? []).entries()) {
+                modifiers.addMany(fromBullModifier({
+                    ...bullModifier.modifier,
+                    remainingShifts: bullModifier.remainingShifts ?? evt.durationShifts ?? 1,
+                }, {
+                    id: `event:${evt.id}:bull:${targetId}:${index}`,
+                    sourceType: "event",
+                    sourceId: evt.id,
+                    ownerPlayerId: targetId,
+                }).map((definition) => ({
+                    ...definition,
+                    duration: { type: "shifts", remaining: bullModifier.remainingShifts ?? evt.durationShifts ?? 1 },
+                })));
+            }
+
             for (const [index, qualityModifier] of (evt.quality ?? []).entries()) {
                 if (qualityModifier.playerId != null && qualityModifier.playerId !== "*" && qualityModifier.playerId !== targetId) continue;
                 modifiers.addMany(fromQualityModifier({
