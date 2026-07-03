@@ -324,8 +324,8 @@ export const songBook: SongRecipe[] = [
     id: "sanctuary-procession",
     name: "Sanctuary Procession",
     kind: "song",
-    pattern: ["guard", "self", "restore", "self"],
-    notePattern: ["lightBlue", "purple", "green", "purple"],
+    pattern: ["guard", "drive", "restore", "self"],
+    notePattern: ["lightBlue", "orange", "green", "purple"],
     scope: "others",
     variants: {
       L: {

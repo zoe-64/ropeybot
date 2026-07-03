@@ -224,7 +224,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
     return "S";
   };
 
-  const resolveRecipeVariantData = (recipe: SongRecipe, preferredVariant: SongVariant): { variant: SongVariant; data: SongRecipeVariant } => {
+  const resolveRecipeVariantData = (recipe: SongRecipe, preferredVariant: SongVariant): { dataVariant: SongVariant; data: SongRecipeVariant } => {
     const preferredIndex = songVariantRank[preferredVariant];
     const searchOrder = [
       ...songVariantOrder.slice(0, preferredIndex + 1).reverse(),
@@ -233,7 +233,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
 
     for (const variant of searchOrder) {
       const data = recipe.variants?.[variant];
-      if (data) return { variant, data };
+      if (data) return { dataVariant: variant, data };
     }
 
     throw new Error(`Song recipe ${recipe.id} has no usable variant data.`);
@@ -252,7 +252,9 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
 
   const resolveRecipeAtVariant = (recipe: SongRecipe, variant: SongVariant): ResolvedSong => {
     const match = resolveRecipeVariantData(recipe, variant);
-    return createResolvedSong(recipe, match.variant, match.data);
+    // Preserve the requested variant for stacking and UI even when the recipe
+    // reuses lower-tier data because no exact tier override is defined.
+    return createResolvedSong(recipe, variant, match.data);
   };
 
   const resolveRecipe = (recipe: SongRecipe, notes: SongNote[]): ResolvedSong => {

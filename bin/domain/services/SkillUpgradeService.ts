@@ -33,9 +33,16 @@ export class SkillUpgradeService {
     const cur = economy.state.currency;
     let msg = `("\nYour current class skills available for upgrade:\n\nYou can upgrade a skill with /bot skillUpgrade <skill name>\n\nCurrent balance: ${cur} ACs\n`;
     for (const s of skills.state.skills) {
-      const base = 1000 * (s.skillLevel ?? 1);
+      const curLevel = s.skillLevel ?? 0;
+      const maxLevel = this.pricingCfg?.skillMaxLevel?.(s.skillId) ?? 10;
+      if (curLevel >= maxLevel) {
+        msg += `|| ${s.skillName} [Level ${curLevel}/${maxLevel}] [MAX LEVEL - cannot be upgraded further] ||\n-> ${s.upgrade_description}\n`;
+        continue;
+      }
+
+      const base = 1000 * (curLevel || 1);
       const price = this.calcPrice(base, s.skillId);
-      msg += `|| ${s.skillName} [Level ${s.skillLevel}], Price: ${price} Ac ||\n-> ${s.upgrade_description}\n`;
+      msg += `|| ${s.skillName} [Level ${curLevel}/${maxLevel}], Price: ${price} Ac ||\n-> ${s.upgrade_description}\n`;
     }
     this.messages.whisper(player.identity.id, msg);
   }

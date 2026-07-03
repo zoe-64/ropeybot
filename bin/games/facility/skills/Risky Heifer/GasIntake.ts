@@ -32,7 +32,8 @@ export class GasIntake implements Skill {
   private decayRate: number = 0.15; 
   private rewardModifier: number = 1;
   private successRateModifier: number = 0;
-  private scoreIncrease: number = 1;
+  private currentHaul: number = 0;
+  private maxLevelCarryRetention: number = 0.35;
   private failureLossMultiplier: number = 0.8;
   private failureMessage?: string;
 
@@ -111,8 +112,12 @@ export class GasIntake implements Skill {
       this.roundSuccesses++;
 
       const intervalReward = this.calculateReward(player) * this.rewardModifier;
-      this.scoreIncrease += intervalReward;
-      const reward = this.isMaxLevel() ? this.scoreIncrease : intervalReward;
+      if (this.isMaxLevel()) {
+        this.currentHaul = intervalReward + this.currentHaul * this.maxLevelCarryRetention;
+      } else {
+        this.currentHaul += intervalReward;
+      }
+      const reward = this.isMaxLevel() ? this.currentHaul : intervalReward;
       this.reduceSuccessRate();
 
       console.log(`GASINTAKE: ${name} new threshold ${this.currentSuccess}`);
@@ -123,7 +128,7 @@ export class GasIntake implements Skill {
       return { energy: this.energyCost, reward, outcome: "success" };
     } else {
       this.gasNumb = true;
-      this.scoreIncrease *= -this.failureLossMultiplier;
+      this.currentHaul *= -this.failureLossMultiplier;
       console.log(
         `GASINTAKE: ${name} failed roll [${playerRoll}] number ${this.roundSuccesses} with threshold ${normalizedSuccessRate}`
       );
@@ -139,7 +144,7 @@ export class GasIntake implements Skill {
       // reset knobs before returning on failure
       this.successRateModifier = 0;
       this.rewardModifier = 1;
-      return { energy: this.energyCost, reward: this.scoreIncrease, outcome: "fail", effects: [{ type: "EMIT_EVENT", event: evt }] };
+      return { energy: this.energyCost, reward: this.currentHaul, outcome: "fail", effects: [{ type: "EMIT_EVENT", event: evt }] };
     }
   }
 
@@ -197,7 +202,7 @@ export class GasIntake implements Skill {
   }
 
   reset(): void {
-    if (this.gasNumb) this.scoreIncrease = 1;
+    this.currentHaul = 0;
     this.gasNumb = false;
     this.roundSuccesses = 0;
     this.rewardModifier = 1;
