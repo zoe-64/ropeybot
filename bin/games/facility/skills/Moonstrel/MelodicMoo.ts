@@ -2,7 +2,8 @@ import { PlayerCore } from "../../../../domain/core/PlayerCore";
 import { IncomingMessage } from "../../../../domain/ports/MessagePort";
 import { ChatMessageType, Skill, SkillResult } from "../../../../domain/skills/Skill.types";
 import { isMoonstrelMaxLevel, performMoonstrelNotes, scaledMoonstrelEnergy, smallFlatReward } from "./_shared";
-import { matchesAnyTriggerToken } from "../triggerMatching";
+
+const MOO_TRIGGER = /(?:^|[^\p{L}\p{N}])moo+(?:ing|s)?(?=$|[^\p{L}\p{N}])/u;
 
 export class MelodicMoo implements Skill {
     skillId: number;
@@ -26,7 +27,7 @@ export class MelodicMoo implements Skill {
 
     validInput(data: IncomingMessage): boolean {
         const content = (data.Content ?? "").toLowerCase();
-        return this.validMessageTypes.includes(data.Type) && matchesAnyTriggerToken(content, this.triggerTokens);
+        return this.validMessageTypes.includes(data.Type) && MOO_TRIGGER.test(content);
     }
 
     canExecute(player: PlayerCore): boolean { return true; }

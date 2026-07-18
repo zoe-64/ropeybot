@@ -12,7 +12,7 @@ export class RestoringVerse implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Emote"];
-    triggerTokens: string[] = ["restore", "restoringverse", "restoring verse"];
+    triggerTokens: string[] = ["restore", "restoring", "restoringverse", "restoring verse"];
     energyCost = 20;
     priority = 6;
 

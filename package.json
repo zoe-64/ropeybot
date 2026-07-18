@@ -3,6 +3,7 @@
     "license": "Apache-2.0",
     "private": "true",
     "scripts": {
+        "test": "node --import tsx --test \"bin/test/**/*.test.ts\"",
         "types": "tsc",
         "prettier": "prettier -c .",
         "compile:bc-bot": "cd src && npm run compile",

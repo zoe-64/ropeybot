@@ -12,7 +12,7 @@ export class GuardingVerse implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Emote"];
-    triggerTokens: string[] = ["guard", "guardingverse", "guarding verse"];
+    triggerTokens: string[] = ["guard", "guarding", "guardingverse", "guarding verse"];
     energyCost = 20;
     priority = 6;
 

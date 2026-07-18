@@ -48,12 +48,17 @@ export type SongRecipeVariant = {
   globalEventId?: string;
 };
 
+export type SongRecipeSlot = {
+  family?: SongNoteFamily;
+  colors?: SongNoteColor[];
+};
+
 export type SongRecipe = {
   id: string;
   name: string;
   kind: SongPhraseKind;
   pattern: SongNoteFamily[];
-  notePattern?: SongNoteColor[];
+  slots?: SongRecipeSlot[];
   scope: SongScope;
   requiresGold?: boolean;
   variants?: Partial<Record<SongVariant, SongRecipeVariant>>;
@@ -67,7 +72,7 @@ export type ResolvedSong = SongRecipeVariant & {
   scope: SongScope;
   variant?: SongVariant;
   pattern: SongNoteFamily[];
-  notePattern?: SongNoteColor[];
+  slots?: SongRecipeSlot[];
 };
 
 export type ActiveSong = ResolvedSong & {
@@ -190,6 +195,7 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
 
   const recipes = songBook.slice().sort((a, b) => b.pattern.length - a.pattern.length);
   const recipeById = new Map(recipes.map((recipe) => [recipe.id, recipe] as const));
+  const recipeOrder = new Map(songBook.map((recipe, index) => [recipe.id, index] as const));
 
   const getBufferCapacity = () => {
     const classing = player?.tryGet<any>("classing");
@@ -206,15 +212,64 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
     return level >= 50 ? 2 : 1;
   };
 
-  const matchesTail = (recipe: SongRecipe) => {
-    const pattern = recipe.pattern;
-    if (pattern.length > state.notes.length) return false;
-    const tail = state.notes.slice(-pattern.length);
-    if (recipe.requiresGold && !tail.some((note) => note.color === "gold")) return false;
-    if (recipe.notePattern?.length) {
-      return recipe.notePattern.every((color, index) => tail[index]?.color === color);
+  const getRecipeSlots = (recipe: SongRecipe): SongRecipeSlot[] => (
+    recipe.slots?.length
+      ? recipe.slots
+      : recipe.pattern.map((family) => ({ family }))
+  );
+
+  const evaluateRecipeMatch = (
+    recipe: SongRecipe,
+    notes: SongNote[],
+  ): { matched: boolean; specificity: number } => {
+    const slots = getRecipeSlots(recipe);
+    if (slots.length !== notes.length) return { matched: false, specificity: 0 };
+    if (recipe.requiresGold && !notes.some((note) => note.color === "gold")) {
+      return { matched: false, specificity: 0 };
     }
-    return pattern.every((family, index) => tail[index]?.family === family);
+
+    let specificity = 0;
+    for (let index = 0; index < slots.length; index += 1) {
+      const slot = slots[index];
+      const note = notes[index];
+      const family = slot.family ?? recipe.pattern[index];
+      if (!note || note.family !== family) return { matched: false, specificity: 0 };
+
+      if (!slot.colors?.length) {
+        specificity += 1;
+        continue;
+      }
+
+      const colorIndex = slot.colors.indexOf(note.color);
+      if (colorIndex < 0) return { matched: false, specificity: 0 };
+      specificity += colorIndex === 0 ? 4 : 3;
+    }
+
+    return { matched: true, specificity };
+  };
+
+  const matchesRecipePrefix = (recipe: SongRecipe, notes: SongNote[]): boolean => {
+    const slots = getRecipeSlots(recipe);
+    if (notes.length >= slots.length) return false;
+
+    for (let index = 0; index < notes.length; index += 1) {
+      const slot = slots[index];
+      const note = notes[index];
+      const family = slot.family ?? recipe.pattern[index];
+      if (!note || note.family !== family) return false;
+      if (slot.colors?.length && !slot.colors.includes(note.color)) return false;
+    }
+
+    return true;
+  };
+
+  const shouldDelaySuffixResolution = (candidateLength: number): boolean => {
+    if (candidateLength >= state.notes.length) return false;
+
+    return recipes.some((recipe) => {
+      if (recipe.pattern.length <= state.notes.length) return false;
+      return matchesRecipePrefix(recipe, state.notes);
+    });
   };
 
   const resolveVariant = (notes: SongNote[]): SongVariant => {
@@ -247,7 +302,10 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
     scope: recipe.scope,
     variant,
     pattern: recipe.pattern.slice(),
-    notePattern: recipe.notePattern?.slice(),
+    slots: recipe.slots?.map((slot) => ({
+      family: slot.family,
+      colors: slot.colors?.slice(),
+    })),
   });
 
   const resolveRecipeAtVariant = (recipe: SongRecipe, variant: SongVariant): ResolvedSong => {
@@ -270,7 +328,10 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
         kind: recipe.kind,
         scope: recipe.scope,
         pattern: recipe.pattern.slice(),
-        notePattern: recipe.notePattern?.slice(),
+        slots: recipe.slots?.map((slot) => ({
+          family: slot.family,
+          colors: slot.colors?.slice(),
+        })),
       };
     }
 
@@ -293,7 +354,10 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
   const createActiveSong = (resolved: ResolvedSong, remainingShifts = resolved.durationShifts, stackLevel = 1): ActiveSong => ({
     ...resolved,
     pattern: resolved.pattern.slice(),
-    notePattern: resolved.notePattern?.slice(),
+    slots: resolved.slots?.map((slot) => ({
+      family: slot.family,
+      colors: slot.colors?.slice(),
+    })),
     remainingShifts,
     performedAt: Date.now(),
     stackLevel,
@@ -302,7 +366,10 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
   const overwriteActiveSong = (target: ActiveSong, next: ActiveSong) => {
     Object.assign(target, next, {
       pattern: next.pattern.slice(),
-      notePattern: next.notePattern?.slice(),
+      slots: next.slots?.map((slot) => ({
+        family: slot.family,
+        colors: slot.colors?.slice(),
+      })),
     });
   };
 
@@ -483,22 +550,49 @@ export function createSongModule(songBook: SongRecipe[], noteCatalog: SongNoteCa
       let bufferedSong: ResolvedSong | undefined;
       let activatedSong: ActiveSong | undefined;
       let bufferRejected = false;
-      for (const recipe of recipes) {
-        if (!matchesTail(recipe)) continue;
-        const usedNotes = state.notes.slice(-recipe.pattern.length);
-        state.notes = state.notes.slice(0, -recipe.pattern.length);
-        completedSong = resolveRecipe(recipe, usedNotes);
-        if (completedSong.kind === "song") {
-          if (state.storedSongs.length < getBufferCapacity()) {
-            state.storedSongs.push(completedSong);
-            bufferedSong = completedSong;
+      const matches = recipes
+        .map((recipe) => {
+          const usedNotes = state.notes.slice(-recipe.pattern.length);
+          const match = evaluateRecipeMatch(recipe, usedNotes);
+          return match.matched
+            ? {
+              recipe,
+              usedNotes,
+              specificity: match.specificity,
+              order: recipeOrder.get(recipe.id) ?? Number.MAX_SAFE_INTEGER,
+            }
+            : undefined;
+        })
+        .filter((candidate): candidate is {
+          recipe: SongRecipe;
+          usedNotes: SongNote[];
+          specificity: number;
+          order: number;
+        } => candidate != null);
+
+      if (matches.length) {
+        const maxLength = Math.max(...matches.map((candidate) => candidate.recipe.pattern.length));
+        const bestMatch = matches
+          .filter((candidate) => candidate.recipe.pattern.length === maxLength)
+          .sort((left, right) => (
+            right.specificity - left.specificity
+            || left.order - right.order
+          ))[0];
+
+        if (!shouldDelaySuffixResolution(bestMatch.recipe.pattern.length)) {
+          state.notes = state.notes.slice(0, -bestMatch.recipe.pattern.length);
+          completedSong = resolveRecipe(bestMatch.recipe, bestMatch.usedNotes);
+          if (completedSong.kind === "song") {
+            if (state.storedSongs.length < getBufferCapacity()) {
+              state.storedSongs.push(completedSong);
+              bufferedSong = completedSong;
+            } else {
+              bufferRejected = true;
+            }
           } else {
-            bufferRejected = true;
+            activatedSong = activateResolvedSong(completedSong);
           }
-        } else {
-          activatedSong = activateResolvedSong(completedSong);
         }
-        break;
       }
 
       const name = player?.identity.nickname ?? player?.identity.name ?? "<unknown>";

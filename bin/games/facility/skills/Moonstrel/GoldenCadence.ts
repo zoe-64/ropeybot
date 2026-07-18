@@ -12,7 +12,7 @@ export class GoldenCadence implements Skill {
     upgrade_description: string;
 
     validMessageTypes: ChatMessageType[] = ["Emote"];
-    triggerTokens: string[] = ["crown", "goldencadence", "golden cadence"];
+    triggerTokens: string[] = ["crown", "candence", "goldencadence", "golden cadence"];
     energyCost = 0;
     priority = 7;
 

@@ -54,7 +54,7 @@ export class BullEngine {
       const player = this.getPlayer(pid);
       const bull = player?.tryGet<BullModule>("bull");
       if (!bull) return;
-      const ready = payload?.bullState?.ready ?? bull.getState().ready;
+      const ready = bull.getState().ready || payload?.bullState?.ready === true;
       if (ready) {
         const res = bull.consume();
         if (res.consumed) {
@@ -77,7 +77,7 @@ export class BullEngine {
       const player = this.getPlayer(pid);
       const bull = player?.tryGet<BullModule>("bull");
       if (!bull) return;
-      const ready = payload?.bullState?.ready ?? bull.getState().ready;
+      const ready = bull.getState().ready || payload?.bullState?.ready === true;
       if (ready) {
         const info = bull.fail();
         this.handleFailMessages(pid, bull, info);

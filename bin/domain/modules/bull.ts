@@ -69,6 +69,7 @@ export function createBullModule(): BullModule {
   }
 
   function removeCharge(amount: number): { reduced: number; lostReady: boolean } {
+    if (state.ready) return { reduced: 0, lostReady: false };
     const delta = Math.max(0, Math.floor(amount));
     if (delta === 0) return { reduced: 0, lostReady: false };
     const prevEnergy = state.energy;

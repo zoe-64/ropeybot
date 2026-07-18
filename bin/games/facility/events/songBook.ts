@@ -58,6 +58,10 @@ export const songBook: SongRecipe[] = [
     name: "Mirror Etude",
     kind: "melody",
     pattern: ["self", "self"],
+    slots: [
+      { family: "self", colors: ["white", "purple"] },
+      { family: "self", colors: ["white", "purple"] },
+    ],
     scope: "self",
     variants: {
       S: {
@@ -88,6 +92,10 @@ export const songBook: SongRecipe[] = [
     name: "Stillwater Ward",
     kind: "melody",
     pattern: ["guard", "self"],
+    slots: [
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "self", colors: ["white", "purple"] },
+    ],
     scope: "self",
     variants: {
       S: {
@@ -118,6 +126,10 @@ export const songBook: SongRecipe[] = [
     name: "Ember Renewal",
     kind: "melody",
     pattern: ["restore", "drive"],
+    slots: [
+      { family: "restore", colors: ["green"] },
+      { family: "drive", colors: ["red", "orange"] },
+    ],
     scope: "self",
     variants: {
       S: {
@@ -150,7 +162,11 @@ export const songBook: SongRecipe[] = [
     name: "Mirror Etude Fugue",
     kind: "melody",
     pattern: ["self", "drive", "self"],
-    notePattern: ["purple", "red", "purple"],
+    slots: [
+      { family: "self", colors: ["purple"] },
+      { family: "drive", colors: ["orange"] },
+      { family: "self", colors: ["purple"] },
+    ],
     scope: "self",
     variants: {
       L: {
@@ -161,6 +177,14 @@ export const songBook: SongRecipe[] = [
           { modifier: { energyCostMultiplier: 0.85 } },
         ],
       },
+      XL: {
+        summary: "A masterful mirror refrain that adds +8 score per melody level each shift and reduces energy costs by 18% while active.",
+        durationShifts: 3,
+        shiftScorePerLevel: 8,
+        skillModifiers: [
+          { modifier: { energyCostMultiplier: 0.82 } },
+        ],
+      },
     },
   },
   {
@@ -168,7 +192,11 @@ export const songBook: SongRecipe[] = [
     name: "Stillwater Reservoir",
     kind: "melody",
     pattern: ["self", "guard", "self"],
-    notePattern: ["purple", "lightBlue", "purple"],
+    slots: [
+      { family: "self", colors: ["purple"] },
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "self", colors: ["purple"] },
+    ],
     scope: "self",
     variants: {
       L: {
@@ -179,6 +207,14 @@ export const songBook: SongRecipe[] = [
           { modifier: { successMult: 1.22 }, remainingShifts: 3 },
         ],
       },
+      XL: {
+        summary: "A glacial ward refrain that restores +14 energy per melody level each shift and improves quality generation by 26% while active.",
+        durationShifts: 3,
+        shiftEnergyPerLevel: 14,
+        qualityModifiers: [
+          { modifier: { successMult: 1.26 }, remainingShifts: 3 },
+        ],
+      },
     },
   },
   {
@@ -186,9 +222,21 @@ export const songBook: SongRecipe[] = [
     name: "Ember Crescence",
     kind: "melody",
     pattern: ["drive", "restore", "drive"],
-    notePattern: ["orange", "green", "orange"],
+    slots: [
+      { family: "drive", colors: ["orange"] },
+      { family: "restore", colors: ["green"] },
+      { family: "drive", colors: ["orange"] },
+    ],
     scope: "self",
     variants: {
+      L: {
+        summary: "A bright renewal refrain that increases bull charge generation by 18% and grants 70 extra XP each shift while active.",
+        durationShifts: 3,
+        shiftXpBonus: 70,
+        bullModifiers: [
+          { modifier: { chargeMultiplier: 1.18 }, remainingShifts: 3 },
+        ],
+      },
       XL: {
         summary: "A hotter renewal refrain that increases bull charge generation by 22% and grants 90 extra XP each shift while active.",
         durationShifts: 3,
@@ -204,6 +252,11 @@ export const songBook: SongRecipe[] = [
     name: "Rallying Chorus",
     kind: "song",
     pattern: ["drive", "self", "guard"],
+    slots: [
+      { family: "drive", colors: ["red", "orange"] },
+      { family: "self", colors: ["white", "purple"] },
+      { family: "guard", colors: ["lightBlue"] },
+    ],
     scope: "others",
     variants: {
       S: {
@@ -234,6 +287,11 @@ export const songBook: SongRecipe[] = [
     name: "Sheltering Hymn",
     kind: "song",
     pattern: ["guard", "restore", "self"],
+    slots: [
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "restore", colors: ["green"] },
+      { family: "self", colors: ["white", "purple"] },
+    ],
     scope: "others",
     variants: {
       S: {
@@ -264,6 +322,11 @@ export const songBook: SongRecipe[] = [
     name: "Cadence of Ease",
     kind: "song",
     pattern: ["self", "restore", "drive"],
+    slots: [
+      { family: "self", colors: ["white", "purple"] },
+      { family: "restore", colors: ["green"] },
+      { family: "drive", colors: ["red", "orange"] },
+    ],
     scope: "others",
     variants: {
       S: {
@@ -294,7 +357,12 @@ export const songBook: SongRecipe[] = [
     name: "Grand Rally",
     kind: "song",
     pattern: ["drive", "guard", "self", "drive"],
-    notePattern: ["orange", "lightBlue", "purple", "orange"],
+    slots: [
+      { family: "drive", colors: ["orange"] },
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "self", colors: ["purple"] },
+      { family: "drive", colors: ["orange"] },
+    ],
     scope: "others",
     variants: {
       L: {
@@ -304,20 +372,13 @@ export const songBook: SongRecipe[] = [
           { modifier: { rewardMultiplier: 1.22, energyCostMultiplier: 0.9 } },
         ],
       },
-    },
-  },
-  {
-    id: "coronation-anthem",
-    name: "Coronation Anthem",
-    kind: "aria",
-    pattern: ["self", "drive", "guard", "restore", "crown"],
-    notePattern: ["purple", "orange", "lightBlue", "green", "gold"],
-    scope: "others",
-    requiresGold: true,
-    ariaEffect: {
-      summary: "A crowned aria that calls a powerful room-wide boon into being.",
-      durationShifts: 1,
-      globalEventId: "Lovely",
+      XL: {
+        summary: "A commanding rally that raises neighboring stations' rewards by 26% and reduces their energy costs by 12% while active.",
+        durationShifts: 3,
+        skillModifiers: [
+          { modifier: { rewardMultiplier: 1.26, energyCostMultiplier: 0.88 } },
+        ],
+      },
     },
   },
   {
@@ -325,7 +386,12 @@ export const songBook: SongRecipe[] = [
     name: "Sanctuary Procession",
     kind: "song",
     pattern: ["guard", "drive", "restore", "self"],
-    notePattern: ["lightBlue", "orange", "green", "purple"],
+    slots: [
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "drive", colors: ["orange"] },
+      { family: "restore", colors: ["green"] },
+      { family: "self", colors: ["purple"] },
+    ],
     scope: "others",
     variants: {
       L: {
@@ -338,6 +404,16 @@ export const songBook: SongRecipe[] = [
           { modifier: { successMult: 1.2 }, remainingShifts: 3 },
         ],
       },
+      XL: {
+        summary: "A radiant procession that improves neighboring stations' quality generation by 24% and lowers their energy costs by 12% while active.",
+        durationShifts: 3,
+        skillModifiers: [
+          { modifier: { energyCostMultiplier: 0.88 } },
+        ],
+        qualityModifiers: [
+          { modifier: { successMult: 1.24 }, remainingShifts: 3 },
+        ],
+      },
     },
   },
   {
@@ -345,7 +421,12 @@ export const songBook: SongRecipe[] = [
     name: "Easing Cadence",
     kind: "song",
     pattern: ["restore", "self", "drive", "drive"],
-    notePattern: ["green", "purple", "orange", "orange"],
+    slots: [
+      { family: "restore", colors: ["green"] },
+      { family: "self", colors: ["purple"] },
+      { family: "drive", colors: ["orange"] },
+      { family: "drive", colors: ["orange"] },
+    ],
     scope: "others",
     variants: {
       L: {
@@ -358,6 +439,36 @@ export const songBook: SongRecipe[] = [
           { modifier: { successMult: 1.12 }, remainingShifts: 3 },
         ],
       },
+      XL: {
+        summary: "A luxuriant cadence that reduces neighboring stations' energy costs by 15%, raises rewards by 18%, and improves quality generation by 16% while active.",
+        durationShifts: 3,
+        skillModifiers: [
+          { modifier: { energyCostMultiplier: 0.85, rewardMultiplier: 1.18 } },
+        ],
+        qualityModifiers: [
+          { modifier: { successMult: 1.16 }, remainingShifts: 3 },
+        ],
+      },
+    },
+  },
+  {
+    id: "coronation-anthem",
+    name: "Coronation Anthem",
+    kind: "aria",
+    pattern: ["self", "crown", "drive", "guard", "restore"],
+    slots: [
+      { family: "self", colors: ["purple"] },
+      { family: "crown", colors: ["gold"] },
+      { family: "drive", colors: ["orange"] },
+      { family: "guard", colors: ["lightBlue"] },
+      { family: "restore", colors: ["green"] },
+    ],
+    scope: "others",
+    requiresGold: true,
+    ariaEffect: {
+      summary: "A crowned aria that calls a powerful room-wide boon into being.",
+      durationShifts: 1,
+      globalEventId: "Lovely",
     },
   },
 ];

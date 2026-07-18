@@ -1924,7 +1924,10 @@ export class Facility{
             .filter((workstationId) => {
                 const target = this.getWorkstationGridPosition(workstationId);
                 if (!target) return false;
-                const distance = Math.abs(target.col - origin.col) + Math.abs(target.row - origin.row);
+                const distance = Math.max(
+                    Math.abs(target.col - origin.col),
+                    Math.abs(target.row - origin.row),
+                );
                 return distance > 0 && distance <= radius;
             });
     }
@@ -1989,8 +1992,9 @@ export class Facility{
     }
 
     private renderSongRecipe(recipe: SongRecipe): string {
-        if (recipe.notePattern?.length) {
-            return recipe.notePattern
+        if (recipe.slots?.length && recipe.slots.every((slot) => slot.colors?.[0])) {
+            return recipe.slots
+                .map((slot) => slot.colors?.[0])
                 .map((color) => songNotes[color]?.icon ?? "?")
                 .join(" ");
         }

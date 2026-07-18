@@ -1,7 +1,8 @@
 import { PlayerCore } from "../../../../domain/core/PlayerCore";
 import { IncomingMessage } from "../../../../domain/ports/MessagePort";
 import { Skill, SkillResult, ChatMessageType } from "../../../../domain/skills/Skill.types";
-import { matchesAnyTriggerToken } from "../triggerMatching";
+
+const MOO_TRIGGER = /(?:^|[^\p{L}\p{N}])moo+(?:ing|s)?(?=$|[^\p{L}\p{N}])/u;
 
 export class GamblersMoo implements Skill {
     skillId: number;
@@ -37,7 +38,7 @@ export class GamblersMoo implements Skill {
     validInput(data: IncomingMessage): boolean {
         const validMessageType = this.validMessageTypes.includes(data.Type);
         const content = (data.Content ?? "").toLowerCase();
-        const canTrigger = matchesAnyTriggerToken(content, this.triggerTokens);
+        const canTrigger = MOO_TRIGGER.test(content);
         return validMessageType && canTrigger;
     }
 
