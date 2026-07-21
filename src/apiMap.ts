@@ -27,11 +27,14 @@ export interface MapRegion {
     BottomRight: ChatRoomMapPos;
 }
 
-function mapTileByName(name: string): ChatRoomMapTile | null {
+// https://github.com/FriendsOfBC/ropeybot/issues/4
+function mapTileByName(name: string, type?: string): ChatRoomMapTile | null {
     return (
         (ChatRoomMapViewTileList.find(
-            (tile) => tile.Style === name,
-        ) as ChatRoomMapTile) ?? null
+            (tile) => 
+        (type === undefined || tile.Type === type) &&
+        (tile.Style === name) as ChatRoomMapTile)
+    ) ?? null
     );
 }
 
@@ -178,10 +181,11 @@ export class API_Map extends EventEmitter<MapEvents> {
         }
     }
 
-    public setTile(pos: ChatRoomMapPos, tileName: string): void {
+    // https://github.com/FriendsOfBC/ropeybot/issues/4
+    public setTile(pos: ChatRoomMapPos, tileName: string, tileType?: string): void {
         if (!this.mapData) return;
 
-        const tile = mapTileByName(tileName);
+        const tile = mapTileByName(tileName, tileType);
         if (!tile) return;
 
         const tileNum = pos.X + pos.Y * 40;
