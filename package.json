@@ -25,6 +25,7 @@
         "@types/node": "^20.19.37",
         "esbuild": "^0.19.12",
         "tsx": "^4.21.0",
-        "typescript": "^5.9.3"
+        "typescript": "^5.9.3",
+        "sqlite3": "^5.1.7"
     }
 }
