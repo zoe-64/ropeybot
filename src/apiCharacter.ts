@@ -300,12 +300,13 @@ export class API_Character {
         return upperBody?.Name === "Penis" ? "male" : "female";
     }
 
-    public Kick(): void {
+    public Kick(): Promise<void> {
         this.connection.chatRoomAdmin({
             Action: "Kick",
             MemberNumber: this.MemberNumber,
             Publish: true,
         });
+        return Promise.resolve();
     }
 
     public Ban(): void {
@@ -358,8 +359,8 @@ export class API_Character {
         // See above
         return !Boolean(
             this.Appearance.InventoryGet("ItemMouth") ||
-                this.Appearance.InventoryGet("ItemMouth2") ||
-                this.Appearance.InventoryGet("ItemMouth3"),
+            this.Appearance.InventoryGet("ItemMouth2") ||
+            this.Appearance.InventoryGet("ItemMouth3"),
         );
     }
 

@@ -696,6 +696,7 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
         } finally {
             this.roomCreatePromise = undefined;
         }
+        console.log("ChatRoomCreate emitted", roomDef);
 
         if (result !== "ChatRoomCreated") {
             throw new API_Error(result, "Failed to create room");
