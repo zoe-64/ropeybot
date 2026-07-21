@@ -181,7 +181,7 @@ import {
     InventoryItemNeckAccessoriesCollarAutoShockUnitDrawHook,
     AssetsFaceMarkingsFaceWritingsAfterDrawHook,
     ItemHeadDroneMaskValidateHook,
-    TextItem,,
+    TextItem,
 
 	//#region addendum manual updates
 	InventoryItemHandheldPlushiesSetOptionHook,
@@ -197,7 +197,6 @@ import {
 
 import { E } from "./female3DCG.js";
 
-const InventoryItemHandheldPlushiesSetOptionHook = () => {};
 
 /**
  * An enum encapsulating the available extended item archetypes
@@ -22108,7 +22107,6 @@ export var AssetFemale3DCGExtended = {
 								Font: "sans-serif",
 								ScriptHooks: {
 									AfterDraw: (...args) =>
-										// @ts-expect-error stub
 										TextItem.GenericTextDrawHook(...args, {
 											YOffset: 10,
 											drawOptions: { fontSize: 12 },
