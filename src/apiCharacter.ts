@@ -39,6 +39,8 @@ export interface API_Character_Data {
     MemberNumber: number;
     ActivePose: readonly AssetPoseName[];
     WhiteList: number[];
+    BlackList: ServerAccountDataSynced["BlackList"],
+    Reputation: NonNullable<ServerAccountDataSynced["Reputation"]>,
     OnlineSharedSettings: CharacterOnlineSharedSettings;
     ItemPermission: ItemPermissionLevel;
     FriendList: number[];
@@ -82,6 +84,7 @@ export function transformToCharacterData(
     }
     return {
         ...character,
+        Reputation: character.Reputation ?? [],
         Nickname: character.Nickname ?? "",
         Description: character.Description ?? "",
         Appearance: character.Appearance ?? [],
@@ -141,6 +144,9 @@ export class API_Character {
             return { Name: p };
         });
     }
+    public get BlackList(): API_Character_Data["BlackList"] {
+        return this.data.BlackList;
+    }
     public get WhiteList(): number[] {
         return this.data.WhiteList;
     }
@@ -169,6 +175,14 @@ export class API_Character {
     public unwhitelist(): void {
         this.manageWhitelist("remove", this.MemberNumber);
     }
+
+    // #region Other Misc Character Info
+    public get Dominance() {
+        if (!this.data.Reputation.length) return 0;
+        return this.data.Reputation.find(r => r.Type === "Dominant")?.Value ?? 0;
+    }
+    // #endregion
+
     // #region Online Shared Settings
 
     public get OnlineSharedSettings(): CharacterOnlineSharedSettings {
@@ -342,6 +356,27 @@ export class API_Character {
     public ProtectionAllowInteract(): boolean {
         // TODO
         return true;
+    }
+
+    public get AllowItem() {
+        const botId = this.connection.Player.MemberNumber;
+
+        switch (this.data.ItemPermission ?? 5) {
+            case 0: // Everyone, no exceptions
+                return true;
+            case 1: // Everyone, except blacklist
+                return !this.data.BlackList.includes(botId);
+            case 2: // Owner, Lovers, whitelist & Dominants
+                if ((this.connection.Player.Dominance + 25) >= this.Dominance) // dominant test
+                    return true;
+            case 3: // Owner, Lovers and whitelist only
+                if (this.data.WhiteList.includes(botId)) // whitelist test
+                    return true;
+            case 4: // Owner and Lovers only (ditto below)
+            case 5: // Owner only (not going to bother with checks, because no way bot is owner, maybe will add in the future)
+            default:
+                return false;
+        }
     }
 
     public GetAllowItem(): Promise<boolean> {

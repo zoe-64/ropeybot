@@ -62,7 +62,7 @@ export interface RoomDefinition {
 }
 
 // What the bot advertises as its game version
-const GAMEVERSION = "R127";
+const GAMEVERSION = "R130";
 const LZSTRING_MAGIC = "╬";
 
 const ServerChatMessageMaxLength = 2000; // from bc-server
@@ -104,6 +104,8 @@ interface ConnectorEvents {
         leaveMessage: string | null,
         intentional: boolean,
     ];
+    RoomUpdate: [obj: ServerChatRoomSyncPropertiesMessage];
+    CharacterMapUpdate: [character: API_Character];
 }
 
 export class API_Connector extends EventEmitter<ConnectorEvents> {
@@ -473,6 +475,7 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
         delete roomData.Locked;
 
         this.roomJoined = roomData;
+        this.emit("RoomUpdate", resp);
     };
 
     private onChatRoomSyncCharacter = (
@@ -558,6 +561,8 @@ export class API_Connector extends EventEmitter<ConnectorEvents> {
     private onChatRoomSyncMapData = (update: ServerMapDataResponse) => {
         //console.log("chat room map data", update);
         this._chatRoom?.mapPositionUpdate(update.MemberNumber, update.MapData);
+        const char = this._chatRoom?.getCharacter(update.MemberNumber);
+        if (char) this.emit("CharacterMapUpdate", char);
     };
 
     private ignoreMsgs = [

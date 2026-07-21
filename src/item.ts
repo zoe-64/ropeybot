@@ -28,6 +28,7 @@ interface PartialCraftingData {
     Property?: CraftingPropertyType;
     MemberName?: string;
     MemberNumber?: number;
+    Effects?: CraftingItem["Effects"];
 }
 
 /**
@@ -110,10 +111,8 @@ export class API_AppearanceItem {
         return this.data.Color;
     }
 
-    public SetColor(colors: string[] | string): void {
-        this.data.Color = Array.isArray(colors)
-            ? (colors as BCColor[])
-            : ([Array.isArray(colors) ? colors as BCColor[] : [colors] as BCColor[])] as BCColor[];
+    public SetColor(colors: ItemColor): void {
+        this.data.Color = colors;
         this.queueUpdate();
     }
 
@@ -130,7 +129,7 @@ export class API_AppearanceItem {
                 Lock: "" as "",
                 Private: true,
                 ItemProperty: {} as ItemProperties,
-                Effects: {},
+                Effects: craft.Effects ?? {},
             },
             craft,
         );

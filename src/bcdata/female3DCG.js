@@ -11,37 +11,7 @@ const PoseType = {
 const PoseAllKneeling = Object.freeze(["Kneel", "KneelingSpread"]);
 
 /** @type readonly ("BaseLower" | "LegsOpen" | "LegsClosed" | "Spread")[] */
-const PoseAllStanding = Object.freeze([
-    "BaseLower",
-    "LegsOpen",
-    "LegsClosed",
-    "Spread",
-]);
-
-/**
- * @param {Character} x
- */
-const InventoryItemDevicesKennelGetAudio = (x) => "";
-
-/**
- * @param {Character} x 
- * @param {FetishName} y 
- */
-const PreferenceGetFetishFactor = (x, y) => 0;
-/**
- * @param {Character} x 
- * @param {FetishName} y 
- */
-const ActivityFetishItemFactor = (x, y) => 0;
-
-// *** Item value guidelines ***
-// First, check if there's a similar item and use that price.  If there isn't, use the real price in US dollars
-// If it's an item that can only used once in real life (duct tape), raise the price a lot (you buy a great quantity of it)
-// If it's an item with extended capabilities, raise the price
-// If it's an item with multiple image layers, raise the price a little
-// If it's a restraint that's impossible to remove, raise the price a little
-// If the item doesn't have any image (butt plug), lower the price
-// Bondage items should not go over 250$ - The love belt is that item right now
+/** @type readonly ("BaseLower" | "LegsOpen" | "LegsClosed" | "Spread")[] */
 // Regular clothes should not go over 100$ - Dress2 is that item right now
 // Empty value is a free item that everyone has from the start
 // -1 value items cannot be bought, they must be acquired in-game in some other ways
